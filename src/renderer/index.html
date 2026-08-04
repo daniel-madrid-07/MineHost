@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>MineHost</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">
+          <strong>MineHost</strong>
+          <span>Servidores en local</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="panel">
+          <span class="nav-dot"></span> Panel
+        </button>
+        <button class="nav-item" data-view="mods">
+          <span class="nav-dot"></span> Mods
+        </button>
+        <button class="nav-item" data-view="ajustes">
+          <span class="nav-dot"></span> Ajustes
+        </button>
+        <button class="nav-item" data-view="consola">
+          <span class="nav-dot"></span> Consola
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="status-chip" id="chipServer">
+          <i class="dot"></i><span>Servidor apagado</span>
+        </div>
+        <div class="status-chip" id="chipTunnel">
+          <i class="dot"></i><span>Túnel apagado</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ============================ PANEL ============================ -->
+      <section class="view active" id="view-panel">
+        <header class="view-head">
+          <div>
+            <h1>Panel</h1>
+            <p class="muted">Arranca tu servidor y comparte la dirección con tus amigos.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost" id="btnOpenFolder">Abrir carpeta</button>
+            <button class="btn btn-primary" id="btnPower">Encender servidor</button>
+          </div>
+        </header>
+
+        <div class="grid">
+          <article class="card span2" id="cardAddress">
+            <div class="card-head">
+              <h2>Dirección para tus amigos</h2>
+              <span class="badge" id="tunnelBadge">Sin túnel</span>
+            </div>
+            <div class="address-row">
+              <code id="addressValue">—</code>
+              <button class="btn btn-soft" id="btnCopy" disabled>Copiar</button>
+            </div>
+            <p class="muted small" id="addressHint">
+              Enciende el servidor para generar una dirección pública.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h2>Estado</h2></div>
+            <ul class="stat-list">
+              <li><span>Servidor</span><b id="statServer">Apagado</b></li>
+              <li><span>Jugadores</span><b id="statPlayers">0</b></li>
+              <li><span>Tiempo activo</span><b id="statUptime">—</b></li>
+              <li><span>Versión</span><b id="statVersion">—</b></li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h2>Conectarte tú</h2></div>
+            <p class="muted small">Desde este mismo PC, usa esta dirección en Minecraft:</p>
+            <div class="address-row">
+              <code>localhost</code>
+              <button class="btn btn-soft" id="btnCopyLocal">Copiar</button>
+            </div>
+          </article>
+
+          <article class="card span2" id="cardPlayers">
+            <div class="card-head"><h2>Jugadores conectados</h2></div>
+            <div id="playerList" class="player-list empty">Nadie conectado ahora mismo.</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============================ MODS ============================= -->
+      <section class="view" id="view-mods">
+        <header class="view-head">
+          <div>
+            <h1>Mods</h1>
+            <p class="muted">Arrastra archivos <code>.jar</code> o púlsalos para añadirlos.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost" id="btnOpenMods">Abrir carpeta</button>
+            <button class="btn btn-primary" id="btnAddMods">Añadir mods</button>
+          </div>
+        </header>
+
+        <div class="dropzone" id="dropzone">
+          <div class="dropzone-inner">
+            <strong>Suelta aquí tus mods</strong>
+            <span class="muted small">Solo archivos .jar</span>
+          </div>
+        </div>
+
+        <div class="mod-list" id="modList"></div>
+      </section>
+
+      <!-- =========================== AJUSTES =========================== -->
+      <section class="view" id="view-ajustes">
+        <header class="view-head">
+          <div>
+            <h1>Ajustes</h1>
+            <p class="muted">Configura el servidor, la memoria y el túnel.</p>
+          </div>
+        </header>
+
+        <div class="settings">
+          <article class="card">
+            <div class="card-head"><h2>Servidor</h2></div>
+
+            <label class="field">
+              <span>Carpeta del servidor</span>
+              <div class="row">
+                <input type="text" id="inpServerPath" placeholder="C:\MisServidores\MiMundo" />
+                <button class="btn btn-soft" id="btnPickFolder">Elegir…</button>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>Versión de Minecraft</span>
+              <div class="row">
+                <select id="selVersion"><option>Cargando…</option></select>
+                <button class="btn btn-primary" id="btnInstall">Instalar</button>
+              </div>
+              <small class="muted" id="installStatus">Elige una carpeta vacía y una versión.</small>
+            </label>
+
+            <label class="field">
+              <span>Memoria RAM: <b id="ramLabel">4 GB</b></span>
+              <input type="range" id="rngRam" min="1" max="16" step="1" value="4" />
+              <small class="muted" id="ramHint"></small>
+            </label>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h2>Acceso desde fuera (ngrok)</h2></div>
+            <p class="muted small intro">
+              Permite que tus amigos entren sin tocar el router.
+              <a href="#" id="lnkNgrok">Consigue tu authtoken gratis aquí</a>.
+            </p>
+
+            <label class="field">
+              <span>Authtoken de ngrok</span>
+              <div class="row">
+                <input type="password" id="inpToken" placeholder="2abc…" />
+                <button class="btn btn-soft" id="btnToggleToken">Ver</button>
+              </div>
+              <small class="muted" id="tokenStatus"></small>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="chkAutoTunnel" checked />
+              <span>Abrir el túnel automáticamente al encender el servidor</span>
+            </label>
+
+            <button class="btn btn-soft full" id="btnSaveToken">Guardar authtoken</button>
+          </article>
+
+          <article class="card span2">
+            <div class="card-head"><h2>Opciones del mundo</h2></div>
+            <div class="props-grid">
+              <label class="field">
+                <span>Modo de juego</span>
+                <select id="propGamemode">
+                  <option value="survival">Supervivencia</option>
+                  <option value="creative">Creativo</option>
+                  <option value="adventure">Aventura</option>
+                  <option value="spectator">Espectador</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Dificultad</span>
+                <select id="propDifficulty">
+                  <option value="peaceful">Pacífico</option>
+                  <option value="easy">Fácil</option>
+                  <option value="normal">Normal</option>
+                  <option value="hard">Difícil</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Máx. jugadores</span>
+                <input type="number" id="propMaxPlayers" min="1" max="200" value="10" />
+              </label>
+              <label class="field">
+                <span>Distancia de vista</span>
+                <input type="number" id="propViewDistance" min="3" max="32" value="10" />
+              </label>
+              <label class="field span2">
+                <span>Mensaje del servidor (MOTD)</span>
+                <input type="text" id="propMotd" placeholder="Mi servidor" />
+              </label>
+              <label class="field">
+                <span>Semilla del mundo</span>
+                <input type="text" id="propSeed" placeholder="(aleatoria)" />
+              </label>
+              <label class="check">
+                <input type="checkbox" id="propPvp" />
+                <span>PvP activado</span>
+              </label>
+              <label class="check">
+                <input type="checkbox" id="propWhitelist" />
+                <span>Solo lista blanca</span>
+              </label>
+              <label class="check">
+                <input type="checkbox" id="propOnlineMode" />
+                <span>Requerir cuenta original (online-mode)</span>
+              </label>
+            </div>
+            <button class="btn btn-primary" id="btnSaveProps">Guardar opciones</button>
+            <small class="muted" id="propsStatus"></small>
+          </article>
+        </div>
+      </section>
+
+      <!-- =========================== CONSOLA =========================== -->
+      <section class="view" id="view-consola">
+        <header class="view-head">
+          <div>
+            <h1>Consola</h1>
+            <p class="muted">Registro en vivo del servidor.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost" id="btnClearLog">Limpiar</button>
+          </div>
+        </header>
+
+        <div class="console" id="console"></div>
+
+        <form class="console-input" id="cmdForm">
+          <input type="text" id="cmdInput" placeholder="Escribe un comando (ej. say hola, op TuNombre)" autocomplete="off" />
+          <button class="btn btn-primary" type="submit">Enviar</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <!-- Overlay de progreso -->
+  <div class="overlay" id="overlay" hidden>
+    <div class="overlay-card">
+      <h3 id="overlayTitle">Trabajando…</h3>
+      <div class="bar"><div class="bar-fill" id="overlayBar"></div></div>
+      <p class="muted small" id="overlayText">—</p>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toasts"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
