@@ -1,164 +1,336 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
 
+const Settings = require('./settings');
+const Installer = require('./installer');
 const ServerManager = require('./serverManager');
 const NgrokManager = require('./ngrokManager');
-const Installer = require('./installer');
-const Settings = require('./settings');
+const Scheduler = require('./scheduler');
+const platforms = require('./platforms');
+const players = require('./playerManager');
+const backups = require('./backupManager');
+const worlds = require('./worldManager');
+const modrinth = require('./modrinth');
+const catalog = require('./catalog');
 
-let mainWindow = null;
-let serverManager = null;
-let ngrokManager = null;
+let win = null;
+let server = null;
+let tunnel = null;
+let scheduler = null;
+
+const send = (channel, payload) => {
+  if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
+};
+
+/* ------------------------------- Window ---------------------------------- */
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1180,
-    height: 780,
-    minWidth: 940,
-    minHeight: 640,
-    backgroundColor: '#12100E',
+  const bounds = Settings.get('windowBounds') || {};
+
+  win = new BrowserWindow({
+    width: bounds.width || 1240,
+    height: bounds.height || 820,
+    x: bounds.x,
+    y: bounds.y,
+    minWidth: 1020,
+    minHeight: 680,
+    backgroundColor: '#0E0D0C',
     show: false,
-    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#0E0D0C', symbolColor: '#B5AEA5', height: 38 },
     icon: path.join(__dirname, '../../assets/icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      spellcheck: false,
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-  mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.on('closed', () => { mainWindow = null; });
+  Menu.setApplicationMenu(null);
+  win.loadFile(path.join(__dirname, '../renderer/index.html'));
+
+  // Never leave an invisible window behind: if the renderer stalls, show anyway.
+  const reveal = () => {
+    if (win && !win.isDestroyed() && !win.isVisible()) win.show();
+  };
+  win.once('ready-to-show', reveal);
+  const revealTimer = setTimeout(reveal, 4000);
+
+  win.webContents.on('did-fail-load', (_e, code, desc) => {
+    clearTimeout(revealTimer);
+    reveal();
+    dialog.showErrorBox('MineHost', `No se pudo cargar la interfaz (${code}): ${desc}`);
+  });
+
+  if (process.env.MINEHOST_DEBUG) {
+    win.webContents.on('console-message', (_e, level, message, line, source) => {
+      process.stderr.write(`[renderer:${level}] ${message} (${source}:${line})\n`);
+    });
+    win.webContents.on('render-process-gone', (_e, details) => {
+      process.stderr.write(`[renderer-gone] ${JSON.stringify(details)}\n`);
+    });
+  }
+
+  const saveBounds = () => {
+    if (win && !win.isDestroyed() && !win.isMaximized()) {
+      Settings.merge({ windowBounds: win.getBounds() });
+    }
+  };
+  win.on('resized', saveBounds);
+  win.on('moved', saveBounds);
+  win.on('closed', () => { win = null; });
 }
 
-function send(channel, payload) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(channel, payload);
-  }
-}
+/* ------------------------------ Bootstrap -------------------------------- */
 
 app.whenReady().then(() => {
   Settings.init(app.getPath('userData'));
 
-  serverManager = new ServerManager({
-    onLog: (line) => send('server:log', line),
-    onState: (state) => send('server:state', state),
+  server = new ServerManager({
+    onLog: (l) => send('server:log', l),
+    onState: (s) => send('server:state', s),
+    onStats: (s) => send('server:stats', s),
+    onCrash: async ({ code, reason }) => {
+      send('server:crash', { code, reason });
+      if (reason !== 'port' && reason !== 'eula' && Settings.get('autoRestartOnCrash')) {
+        send('server:log', {
+          line: 'Reiniciando automáticamente en 5 segundos…', level: 'system', ts: Date.now(),
+        });
+        setTimeout(() => startServer().catch(() => {}), 5000);
+      }
+    },
   });
 
-  ngrokManager = new NgrokManager({
-    onLog: (line) => send('ngrok:log', line),
-    onState: (state) => send('ngrok:state', state),
+  tunnel = new NgrokManager({
+    onLog: (l) => send('ngrok:log', l),
+    onState: (s) => send('ngrok:state', s),
   });
+
+  scheduler = new Scheduler({
+    onLog: (l) => send('server:log', l),
+    isRunning: () => server.getState().status === 'running',
+    runRestart: async ({ announceOnly, message }) => {
+      if (announceOnly) return server.sendCommand(`say ${message}`);
+      await server.stop({ save: true });
+      setTimeout(() => startServer().catch(() => {}), 4000);
+    },
+    runBackup: (label) => createBackup({ label }),
+  });
+  scheduler.configure(Settings.get('schedule'));
 
   createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 
-app.on('window-all-closed', async () => {
-  await shutdownAll();
-  if (process.platform !== 'darwin') app.quit();
-});
-
-let shuttingDown = false;
-async function shutdownAll() {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  try { await ngrokManager?.stop(); } catch (_) {}
-  try { await serverManager?.stop(true); } catch (_) {}
+let quitting = false;
+async function shutdown() {
+  if (quitting) return;
+  quitting = true;
+  scheduler?.stop();
+  try { await tunnel?.stop(); } catch (_) {}
+  try { await server?.stop({ force: true, save: true }); } catch (_) {}
 }
 
-app.on('before-quit', shutdownAll);
-
-/* ---------------------------- Settings / config --------------------------- */
-
-ipcMain.handle('settings:get', () => Settings.getAll());
-
-ipcMain.handle('settings:set', (_e, patch) => {
-  Settings.merge(patch);
-  return Settings.getAll();
+app.on('window-all-closed', async () => {
+  await shutdown();
+  if (process.platform !== 'darwin') app.quit();
 });
+app.on('before-quit', shutdown);
 
-ipcMain.handle('dialog:pickFolder', async () => {
-  const res = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory', 'createDirectory'],
+/* ------------------------------- Helpers --------------------------------- */
+
+function currentServer() {
+  const s = Settings.getAll();
+  const info = Installer.inspectServer(s.serverPath);
+  return { settings: s, info };
+}
+
+async function startServer() {
+  const { settings, info } = currentServer();
+  if (!info.installed) return { ok: false, error: 'No hay ningún servidor instalado en esa carpeta.' };
+
+  const javaMajor = Installer.requiredJava(info.minecraft || settings.minecraft || '1.21');
+  let javaPath = settings.javaPath;
+  if (!javaPath || !fs.existsSync(javaPath)) {
+    const found = await Installer.detectJava(javaMajor);
+    javaPath = found.best?.path;
+    if (!javaPath) return { ok: false, error: `Falta Java ${javaMajor}. Reinstala el servidor para descargarlo.` };
+    Settings.merge({ javaPath });
+  }
+
+  const platform = platforms.PLATFORMS[info.platform || settings.platform];
+
+  return server.start({
+    serverPath: settings.serverPath,
+    javaPath,
+    ramGb: settings.ramGb,
+    platform: info.platform || settings.platform,
+    platformName: platform?.name,
+    version: info.version || settings.build,
   });
-  if (res.canceled || !res.filePaths.length) return null;
-  return res.filePaths[0];
-});
+}
 
-ipcMain.handle('shell:openPath', (_e, p) => shell.openPath(p));
-ipcMain.handle('shell:openExternal', (_e, url) => shell.openExternal(url));
-
-/* --------------------------------- Java ---------------------------------- */
-
-ipcMain.handle('java:detect', async () => Installer.detectJava());
-
-/* ------------------------------- Installer -------------------------------- */
-
-ipcMain.handle('installer:versions', async () => Installer.listNeoForgeVersions());
-
-ipcMain.handle('installer:install', async (_e, { serverPath, neoforgeVersion }) => {
-  return Installer.installServer({
-    serverPath,
-    neoforgeVersion,
-    onProgress: (p) => send('installer:progress', p),
+async function createBackup({ label = '' } = {}) {
+  const { settings, info } = currentServer();
+  const running = server.getState().status === 'running';
+  return backups.create({
+    serverPath: settings.serverPath,
+    levelName: info.levelName || 'world',
+    label,
+    keep: settings.backupsKeep,
+    isRunning: running,
+    sendCommand: (c) => server.sendCommand(c),
+    waitForSave: () => server.waitForSave(),
+    onProgress: (p) => send('task:progress', p),
   });
+}
+
+const handle = (channel, fn) => ipcMain.handle(channel, async (_e, ...args) => {
+  try {
+    return await fn(...args);
+  } catch (err) {
+    return { ok: false, error: err?.message || String(err) };
+  }
 });
 
-ipcMain.handle('installer:status', async (_e, serverPath) => Installer.inspectServer(serverPath));
+/* ------------------------------- Settings -------------------------------- */
 
-/* ------------------------------ Server control ---------------------------- */
-
-ipcMain.handle('server:start', async (_e, opts) => serverManager.start(opts));
-ipcMain.handle('server:stop', async () => serverManager.stop(false));
-ipcMain.handle('server:command', async (_e, cmd) => serverManager.sendCommand(cmd));
-ipcMain.handle('server:state', () => serverManager.getState());
-
-/* --------------------------------- ngrok ---------------------------------- */
-
-ipcMain.handle('ngrok:ensure', async () => {
-  return NgrokManager.ensureBinary((p) => send('installer:progress', p));
+handle('settings:get', () => Settings.getAll());
+handle('settings:set', (patch) => {
+  const next = Settings.merge(patch);
+  if (patch.schedule) scheduler.configure(patch.schedule);
+  return next;
 });
 
-ipcMain.handle('ngrok:setToken', async (_e, token) => ngrokManager.setAuthToken(token));
-ipcMain.handle('ngrok:start', async (_e, port) => ngrokManager.start(port));
-ipcMain.handle('ngrok:stop', async () => ngrokManager.stop());
-ipcMain.handle('ngrok:state', () => ngrokManager.getState());
+handle('app:info', () => ({
+  version: app.getVersion(),
+  platforms: platforms.meta(),
+  catalog: { properties: catalog.PROPERTY_GROUPS, gamerules: catalog.GAMERULE_GROUPS },
+  totalRamGb: Math.floor(require('os').totalmem() / 1073741824),
+}));
 
-/* ------------------------------ properties -------------------------------- */
+handle('window:minimize', () => win?.minimize());
+handle('window:maximize', () => (win?.isMaximized() ? win.unmaximize() : win?.maximize()));
+handle('window:close', () => win?.close());
 
-ipcMain.handle('props:read', (_e, serverPath) => {
+/* --------------------------------- Dialogs -------------------------------- */
+
+handle('dialog:pickFolder', async () => {
+  const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] });
+  return r.canceled ? null : r.filePaths[0];
+});
+
+handle('dialog:pickJars', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Mods y plugins', extensions: ['jar'] }],
+  });
+  return r.canceled ? [] : r.filePaths;
+});
+
+handle('dialog:pickZip', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters: [{ name: 'Mundo comprimido', extensions: ['zip'] }],
+  });
+  return r.canceled ? null : r.filePaths[0];
+});
+
+handle('dialog:saveZip', async (defaultName) => {
+  const r = await dialog.showSaveDialog(win, {
+    defaultPath: defaultName,
+    filters: [{ name: 'Archivo ZIP', extensions: ['zip'] }],
+  });
+  return r.canceled ? null : r.filePath;
+});
+
+handle('shell:openPath', (p) => shell.openPath(p));
+handle('shell:openExternal', (url) => {
+  if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+});
+
+/* -------------------------------- Installer ------------------------------- */
+
+handle('platform:versions', (id) => platforms.listVersions(id));
+handle('installer:status', (p) => Installer.inspectServer(p));
+handle('installer:javaFor', (mc) => Installer.requiredJava(mc));
+
+handle('installer:install', async ({ serverPath, platformId, minecraft, build }) => {
+  const res = await Installer.installServer({
+    serverPath, platformId, minecraft, build,
+    onProgress: (p) => send('task:progress', p),
+  });
+  Settings.merge({
+    serverPath, platform: platformId, minecraft,
+    build: res.build, javaPath: res.javaPath,
+  });
+  return res;
+});
+
+/* --------------------------------- Server --------------------------------- */
+
+handle('server:start', () => startServer());
+handle('server:stop', async () => {
+  const { settings } = currentServer();
+  if (settings.backupOnStop && server.getState().status === 'running') {
+    const worldsFound = backups.worldFolders(settings.serverPath, 'world');
+    if (worldsFound.length) {
+      send('task:progress', { label: 'Copia de seguridad antes de cerrar…', percent: 0 });
+      await createBackup({ label: 'auto' });
+      send('task:progress', { label: '', percent: 100, done: true });
+    }
+  }
+  await tunnel.stop();
+  return server.stop({ save: true });
+});
+handle('server:restart', async () => {
+  await server.stop({ save: true });
+  return startServer();
+});
+handle('server:command', (cmd) => server.sendCommand(cmd));
+handle('server:state', () => server.getState());
+handle('server:recentLog', () => server.getRecentLog());
+
+/* ---------------------------------- ngrok --------------------------------- */
+
+handle('ngrok:ensure', () => NgrokManager.ensureBinary((p) => send('task:progress', p)));
+handle('ngrok:setToken', (t) => tunnel.setAuthToken(t));
+handle('ngrok:start', (port) => tunnel.start(port));
+handle('ngrok:stop', () => tunnel.stop());
+handle('ngrok:state', () => tunnel.getState());
+
+/* ------------------------------- Properties ------------------------------- */
+
+function readProps(serverPath) {
   const file = path.join(serverPath, 'server.properties');
   if (!fs.existsSync(file)) return {};
   const out = {};
   for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
-    const idx = line.indexOf('=');
-    if (idx === -1) continue;
-    out[line.slice(0, idx)] = line.slice(idx + 1).replace(/\\:/g, ':');
+    const i = line.indexOf('=');
+    if (i === -1) continue;
+    out[line.slice(0, i)] = line.slice(i + 1).replace(/\\([:=])/g, '$1');
   }
   return out;
-});
+}
 
-ipcMain.handle('props:write', (_e, { serverPath, values }) => {
+handle('props:read', (p) => readProps(p));
+
+handle('props:write', ({ serverPath, values }) => {
   const file = path.join(serverPath, 'server.properties');
-  let lines = [];
   const seen = new Set();
+  let lines = [];
 
   if (fs.existsSync(file)) {
     lines = fs.readFileSync(file, 'utf8').split(/\r?\n/).map((raw) => {
       const line = raw.trim();
       if (!line || line.startsWith('#')) return raw;
-      const idx = line.indexOf('=');
-      if (idx === -1) return raw;
-      const key = line.slice(0, idx);
+      const i = line.indexOf('=');
+      if (i === -1) return raw;
+      const key = line.slice(0, i);
       if (Object.prototype.hasOwnProperty.call(values, key)) {
         seen.add(key);
         return `${key}=${String(values[key])}`;
@@ -166,84 +338,259 @@ ipcMain.handle('props:write', (_e, { serverPath, values }) => {
       return raw;
     });
   }
-
-  for (const [key, value] of Object.entries(values)) {
-    if (!seen.has(key)) lines.push(`${key}=${String(value)}`);
+  for (const [k, v] of Object.entries(values)) {
+    if (!seen.has(k)) lines.push(`${k}=${String(v)}`);
   }
 
   fs.mkdirSync(serverPath, { recursive: true });
+  fs.writeFileSync(file, lines.filter((l, i, a) => l !== '' || i < a.length - 1).join('\n'), 'utf8');
+  return { ok: true };
+});
+
+/* -------------------------------- Gamerules ------------------------------- */
+
+handle('gamerules:set', ({ key, value }) => {
+  if (server.getState().status !== 'running') {
+    return { ok: false, error: 'Enciende el servidor para cambiar las reglas de juego.' };
+  }
+  return server.sendCommand(`gamerule ${key} ${value}`);
+});
+
+/* --------------------------------- Players -------------------------------- */
+
+handle('players:read', (p) => players.readAll(p));
+handle('players:mutate', async ({ list, action, value, opts }) => {
+  const { settings } = currentServer();
+  const props = readProps(settings.serverPath);
+  return players.mutate({
+    serverPath: settings.serverPath,
+    list, action, value,
+    opts: { ...opts, onlineMode: props['online-mode'] !== 'false' },
+    isRunning: server.getState().status === 'running',
+    sendCommand: (c) => server.sendCommand(c),
+  });
+});
+handle('players:kick', ({ name, reason }) =>
+  server.sendCommand(`kick ${name}${reason ? ` ${reason}` : ''}`));
+
+/* --------------------------------- Backups -------------------------------- */
+
+handle('backups:list', (p) => backups.list(p));
+handle('backups:create', (label) => createBackup({ label }));
+handle('backups:restore', async (file) => {
+  const { settings, info } = currentServer();
+  return backups.restore({
+    serverPath: settings.serverPath,
+    file,
+    levelName: info.levelName || 'world',
+    isRunning: server.getState().status !== 'stopped',
+  });
+});
+handle('backups:remove', (file) => {
+  const { settings } = currentServer();
+  return backups.remove(settings.serverPath, file);
+});
+handle('backups:openFolder', () => {
+  const { settings } = currentServer();
+  return shell.openPath(backups.backupsDir(settings.serverPath));
+});
+
+/* ---------------------------------- Worlds -------------------------------- */
+
+handle('worlds:list', () => {
+  const { settings } = currentServer();
+  const props = readProps(settings.serverPath);
+  return worlds.list(settings.serverPath, props['level-name'] || 'world');
+});
+
+handle('worlds:activate', (name) => {
+  if (server.getState().status !== 'stopped') {
+    return { ok: false, error: 'Apaga el servidor antes de cambiar de mundo.' };
+  }
+  const { settings } = currentServer();
+  const file = path.join(settings.serverPath, 'server.properties');
+  const props = readProps(settings.serverPath);
+  props['level-name'] = name;
+  const lines = Object.entries(props).map(([k, v]) => `${k}=${v}`);
   fs.writeFileSync(file, lines.join('\n'), 'utf8');
-  return true;
+  return { ok: true };
 });
 
-/* --------------------------------- EULA ----------------------------------- */
-
-ipcMain.handle('eula:accept', (_e, serverPath) => {
-  fs.mkdirSync(serverPath, { recursive: true });
-  fs.writeFileSync(path.join(serverPath, 'eula.txt'), 'eula=true\n', 'utf8');
-  return true;
+handle('worlds:rename', ({ from, to }) => {
+  if (server.getState().status !== 'stopped') {
+    return { ok: false, error: 'Apaga el servidor antes de renombrar un mundo.' };
+  }
+  const { settings } = currentServer();
+  return worlds.rename(settings.serverPath, from, to);
 });
 
-/* --------------------------------- Mods ----------------------------------- */
+handle('worlds:remove', (name) => {
+  if (server.getState().status !== 'stopped') {
+    return { ok: false, error: 'Apaga el servidor antes de borrar un mundo.' };
+  }
+  const { settings } = currentServer();
+  const props = readProps(settings.serverPath);
+  return worlds.remove(settings.serverPath, name, props['level-name'] || 'world');
+});
 
-function modsDir(serverPath) {
-  const dir = path.join(serverPath, 'mods');
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
+handle('worlds:resetDimension', ({ world, dimension }) => {
+  if (server.getState().status !== 'stopped') {
+    return { ok: false, error: 'Apaga el servidor antes de reiniciar una dimensión.' };
+  }
+  const { settings } = currentServer();
+  return worlds.resetDimension(settings.serverPath, world, dimension);
+});
+
+handle('worlds:export', async ({ name, dest }) => {
+  const { settings } = currentServer();
+  return worlds.exportWorld({
+    serverPath: settings.serverPath, name, dest,
+    onProgress: (p) => send('task:progress', p),
+  });
+});
+
+handle('worlds:import', ({ zipPath, name }) => {
+  if (server.getState().status !== 'stopped') {
+    return { ok: false, error: 'Apaga el servidor antes de importar un mundo.' };
+  }
+  const { settings } = currentServer();
+  return worlds.importWorld({ serverPath: settings.serverPath, zipPath, name });
+});
+
+/* ----------------------------------- Mods --------------------------------- */
+
+function contentDir(settings, info) {
+  const platform = platforms.PLATFORMS[info.platform || settings.platform];
+  const dir = platform?.modsDir;
+  if (!dir) return null;
+  const full = path.join(settings.serverPath, dir);
+  fs.mkdirSync(full, { recursive: true });
+  return full;
 }
 
-ipcMain.handle('mods:list', (_e, serverPath) => {
-  const dir = modsDir(serverPath);
-  return fs.readdirSync(dir)
+handle('mods:list', () => {
+  const { settings, info } = currentServer();
+  const dir = contentDir(settings, info);
+  if (!dir) return { supported: false, items: [] };
+
+  const items = fs.readdirSync(dir)
     .filter((f) => f.endsWith('.jar') || f.endsWith('.jar.disabled'))
     .map((f) => {
-      const full = path.join(dir, f);
-      const st = fs.statSync(full);
+      const st = fs.statSync(path.join(dir, f));
       return {
-        name: f.replace(/\.disabled$/, ''),
         file: f,
+        name: f.replace(/\.disabled$/, ''),
         enabled: !f.endsWith('.disabled'),
         size: st.size,
+        added: st.mtimeMs,
       };
     })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+  const platform = platforms.PLATFORMS[info.platform || settings.platform];
+  return { supported: true, items, kind: platform?.kind, dirName: platform?.modsDir };
 });
 
-ipcMain.handle('mods:add', (_e, { serverPath, files }) => {
-  const dir = modsDir(serverPath);
+handle('mods:add', (files) => {
+  const { settings, info } = currentServer();
+  const dir = contentDir(settings, info);
+  if (!dir) return { ok: false, error: 'Esta plataforma no admite mods ni plugins.' };
   let added = 0;
   for (const src of files) {
     if (!src.toLowerCase().endsWith('.jar')) continue;
     fs.copyFileSync(src, path.join(dir, path.basename(src)));
     added++;
   }
-  return added;
+  return { ok: true, added };
 });
 
-ipcMain.handle('mods:toggle', (_e, { serverPath, file }) => {
-  const dir = modsDir(serverPath);
+handle('mods:toggle', (file) => {
+  const { settings, info } = currentServer();
+  const dir = contentDir(settings, info);
   const from = path.join(dir, file);
   const to = file.endsWith('.disabled')
     ? path.join(dir, file.replace(/\.disabled$/, ''))
     : `${from}.disabled`;
   fs.renameSync(from, to);
-  return true;
+  return { ok: true };
 });
 
-ipcMain.handle('mods:remove', (_e, { serverPath, file }) => {
-  fs.unlinkSync(path.join(modsDir(serverPath), file));
-  return true;
+handle('mods:remove', (file) => {
+  const { settings, info } = currentServer();
+  fs.unlinkSync(path.join(contentDir(settings, info), file));
+  return { ok: true };
 });
 
-ipcMain.handle('mods:pickFiles', async () => {
-  const res = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Mods de Minecraft', extensions: ['jar'] }],
+handle('mods:openFolder', () => {
+  const { settings, info } = currentServer();
+  const dir = contentDir(settings, info);
+  return dir ? shell.openPath(dir) : null;
+});
+
+/* -------------------------------- Modrinth -------------------------------- */
+
+handle('modrinth:search', ({ query, offset }) => {
+  const { settings, info } = currentServer();
+  return modrinth.search({
+    query,
+    offset,
+    loader: info.platform || settings.platform,
+    gameVersion: info.minecraft || settings.minecraft,
   });
-  if (res.canceled) return [];
-  return res.filePaths;
 });
 
-/* ------------------------------- System info ------------------------------ */
+handle('modrinth:install', async (projectId) => {
+  const { settings, info } = currentServer();
+  const dir = contentDir(settings, info);
+  if (!dir) return { ok: false, error: 'Esta plataforma no admite mods ni plugins.' };
+  return modrinth.install({
+    projectId,
+    loader: info.platform || settings.platform,
+    gameVersion: info.minecraft || settings.minecraft,
+    targetDir: dir,
+    onProgress: (p) => send('task:progress', p),
+  });
+});
 
-ipcMain.handle('system:ram', () => Math.round(require('os').totalmem() / 1024 / 1024 / 1024));
+/* -------------------------------- Datapacks ------------------------------- */
+
+handle('datapacks:list', () => {
+  const { settings } = currentServer();
+  const props = readProps(settings.serverPath);
+  const dir = path.join(settings.serverPath, props['level-name'] || 'world', 'datapacks');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).map((f) => {
+    const st = fs.statSync(path.join(dir, f));
+    return { name: f, size: st.isDirectory() ? 0 : st.size, isFolder: st.isDirectory() };
+  });
+});
+
+handle('datapacks:add', (files) => {
+  const { settings } = currentServer();
+  const props = readProps(settings.serverPath);
+  const dir = path.join(settings.serverPath, props['level-name'] || 'world', 'datapacks');
+  fs.mkdirSync(dir, { recursive: true });
+  let added = 0;
+  for (const src of files) {
+    if (!src.toLowerCase().endsWith('.zip')) continue;
+    fs.copyFileSync(src, path.join(dir, path.basename(src)));
+    added++;
+  }
+  return { ok: true, added };
+});
+
+handle('datapacks:remove', (name) => {
+  const { settings } = currentServer();
+  const props = readProps(settings.serverPath);
+  const target = path.join(settings.serverPath, props['level-name'] || 'world', 'datapacks', name);
+  fs.rmSync(target, { recursive: true, force: true });
+  return { ok: true };
+});
+
+/* ------------------------------- Scheduler -------------------------------- */
+
+handle('schedule:get', () => scheduler.getConfig());
+handle('schedule:set', (config) => {
+  Settings.merge({ schedule: config });
+  return scheduler.configure(config);
+});

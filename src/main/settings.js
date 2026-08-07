@@ -6,26 +6,37 @@ let cache = {};
 
 const DEFAULTS = {
   serverPath: '',
-  neoforgeVersion: '',
+  platform: 'neoforge',
+  minecraft: '',
+  build: '',
   javaPath: '',
   ramGb: 4,
   ngrokToken: '',
   autoTunnel: true,
+  autoRestartOnCrash: true,
+  backupsKeep: 10,
+  backupOnStop: true,
+  schedule: { restart: { enabled: false, time: '05:00' }, backup: { enabled: false, everyHours: 6 } },
+  onboardingDone: false,
+  windowBounds: null,
 };
 
 function load() {
   try {
     if (fs.existsSync(filePath)) {
-      cache = { ...DEFAULTS, ...JSON.parse(fs.readFileSync(filePath, 'utf8')) };
+      const saved = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      cache = { ...DEFAULTS, ...saved, schedule: { ...DEFAULTS.schedule, ...(saved.schedule || {}) } };
       return;
     }
   } catch (_) {}
-  cache = { ...DEFAULTS };
+  cache = JSON.parse(JSON.stringify(DEFAULTS));
 }
 
 function save() {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(cache, null, 2), 'utf8');
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(cache, null, 2), 'utf8');
+  } catch (_) {}
 }
 
 module.exports = {
@@ -34,10 +45,14 @@ module.exports = {
     load();
   },
   getAll() {
-    return { ...cache };
+    return JSON.parse(JSON.stringify(cache));
+  },
+  get(key) {
+    return cache[key];
   },
   merge(patch) {
     cache = { ...cache, ...patch };
     save();
+    return this.getAll();
   },
 };

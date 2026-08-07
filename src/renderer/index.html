@@ -3,274 +3,584 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+        content="default-src 'self'; img-src 'self' data: https://cdn.modrinth.com; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'" />
   <title>MineHost</title>
+  <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark"></div>
-        <div class="brand-text">
-          <strong>MineHost</strong>
-          <span>Servidores en local</span>
-        </div>
-      </div>
 
-      <nav class="nav">
-        <button class="nav-item active" data-view="panel">
-          <span class="nav-dot"></span> Panel
-        </button>
-        <button class="nav-item" data-view="mods">
-          <span class="nav-dot"></span> Mods
-        </button>
-        <button class="nav-item" data-view="ajustes">
-          <span class="nav-dot"></span> Ajustes
-        </button>
-        <button class="nav-item" data-view="consola">
-          <span class="nav-dot"></span> Consola
-        </button>
-      </nav>
+<!-- Custom icon set. Domain glyphs are drawn for this app, not borrowed. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-panel" viewBox="0 0 16 16">
+      <path d="M2.5 8.6 8 5.4l5.5 3.2M2.5 8.6v3L8 14.8l5.5-3.2v-3M2.5 8.6 8 11.8l5.5-3.2M8 1.2 2.5 4.4 8 7.6l5.5-3.2L8 1.2Z"
+            fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-world" viewBox="0 0 16 16">
+      <circle cx="8" cy="8" r="6.1" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M2 6.4h12M2.4 10.2h11.2M8 1.9c1.7 1.7 2.5 3.9 2.5 6.1S9.7 12.4 8 14.1C6.3 12.4 5.5 10.2 5.5 8S6.3 3.6 8 1.9Z"
+            fill="none" stroke="currentColor" stroke-width="1.2"/>
+    </symbol>
+    <symbol id="i-mods" viewBox="0 0 16 16">
+      <path d="M6.6 2.2h2.8v1.6a1.4 1.4 0 0 0 2.1 1.2l.7 1.2a1.4 1.4 0 0 0 0 2.4l-.7 1.2a1.4 1.4 0 0 0-2.1 1.2v1.6H6.6v-1.6a1.4 1.4 0 0 0-2.1-1.2l-.7-1.2a1.4 1.4 0 0 0 0-2.4l.7-1.2a1.4 1.4 0 0 0 2.1-1.2V2.2Z"
+            fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+      <circle cx="8" cy="8" r="1.7" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    </symbol>
+    <symbol id="i-players" viewBox="0 0 16 16">
+      <circle cx="6.2" cy="5.6" r="2.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M1.9 13.6c0-2.4 1.9-4.1 4.3-4.1s4.3 1.7 4.3 4.1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M11 3.5a2.3 2.3 0 0 1 0 4.3M12.2 9.9c1.3.5 2.1 1.7 2.1 3.3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-backup" viewBox="0 0 16 16">
+      <path d="M13.4 8a5.4 5.4 0 1 1-1.7-3.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M13.6 2.1v3.2h-3.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 5.4V8l1.9 1.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 16 16">
+      <path d="M2.6 4.4h10.8M2.6 8h10.8M2.6 11.6h10.8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="5.6" cy="4.4" r="1.5" fill="var(--surface-1)" stroke="currentColor" stroke-width="1.2"/>
+      <circle cx="10.2" cy="8" r="1.5" fill="var(--surface-1)" stroke="currentColor" stroke-width="1.2"/>
+      <circle cx="6.4" cy="11.6" r="1.5" fill="var(--surface-1)" stroke="currentColor" stroke-width="1.2"/>
+    </symbol>
+    <symbol id="i-console" viewBox="0 0 16 16">
+      <rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M4.6 6.4 6.6 8l-2 1.6M8.4 10h3.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 16 16">
+      <circle cx="7.2" cy="7.2" r="4.6" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <path d="m10.6 10.6 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 16 16">
+      <path d="M8 3.4v9.2M3.4 8h9.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-folder" viewBox="0 0 16 16">
+      <path d="M1.9 4.3c0-.7.6-1.3 1.3-1.3h2.6l1.4 1.7h5c.7 0 1.3.6 1.3 1.3v5.7c0 .7-.6 1.3-1.3 1.3H3.2c-.7 0-1.3-.6-1.3-1.3V4.3Z"
+            fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-copy" viewBox="0 0 16 16">
+      <rect x="5.6" y="5.6" width="8" height="8" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M10.4 5.6V3.8c0-.8-.6-1.4-1.4-1.4H3.8c-.8 0-1.4.6-1.4 1.4V9c0 .8.6 1.4 1.4 1.4h1.8"
+            fill="none" stroke="currentColor" stroke-width="1.2"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 16 16">
+      <path d="m3.4 8.4 3 3 6.2-6.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 16 16">
+      <path d="M3 4.6h10M6.4 4.6V3.4c0-.6.4-1 1-1h1.2c.6 0 1 .4 1 1v1.2M4.4 4.6l.6 8c0 .6.5 1 1 1h4c.5 0 1-.4 1-1l.6-8"
+            fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-power" viewBox="0 0 16 16">
+      <path d="M8 2.4v5.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M11.7 4.6a5 5 0 1 1-7.4 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 16 16">
+      <path d="M8 2.6v7.2M4.8 7l3.2 3 3.2-3M2.8 13h10.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-external" viewBox="0 0 16 16">
+      <path d="M9 3h4v4M13 3 7.6 8.4M11.4 9.6v2.8c0 .7-.6 1.2-1.2 1.2H3.8c-.7 0-1.2-.6-1.2-1.2V5.8c0-.7.6-1.2 1.2-1.2h2.8"
+            fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-warn" viewBox="0 0 16 16">
+      <path d="M8 2.6 14.2 13H1.8L8 2.6Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M8 6.6v3M8 11.4h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
 
-      <div class="sidebar-foot">
-        <div class="status-chip" id="chipServer">
-          <i class="dot"></i><span>Servidor apagado</span>
-        </div>
-        <div class="status-chip" id="chipTunnel">
-          <i class="dot"></i><span>Túnel apagado</span>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main">
-      <!-- ============================ PANEL ============================ -->
-      <section class="view active" id="view-panel">
-        <header class="view-head">
-          <div>
-            <h1>Panel</h1>
-            <p class="muted">Arranca tu servidor y comparte la dirección con tus amigos.</p>
-          </div>
-          <div class="head-actions">
-            <button class="btn btn-ghost" id="btnOpenFolder">Abrir carpeta</button>
-            <button class="btn btn-primary" id="btnPower">Encender servidor</button>
-          </div>
-        </header>
-
-        <div class="grid">
-          <article class="card span2" id="cardAddress">
-            <div class="card-head">
-              <h2>Dirección para tus amigos</h2>
-              <span class="badge" id="tunnelBadge">Sin túnel</span>
-            </div>
-            <div class="address-row">
-              <code id="addressValue">—</code>
-              <button class="btn btn-soft" id="btnCopy" disabled>Copiar</button>
-            </div>
-            <p class="muted small" id="addressHint">
-              Enciende el servidor para generar una dirección pública.
-            </p>
-          </article>
-
-          <article class="card">
-            <div class="card-head"><h2>Estado</h2></div>
-            <ul class="stat-list">
-              <li><span>Servidor</span><b id="statServer">Apagado</b></li>
-              <li><span>Jugadores</span><b id="statPlayers">0</b></li>
-              <li><span>Tiempo activo</span><b id="statUptime">—</b></li>
-              <li><span>Versión</span><b id="statVersion">—</b></li>
-            </ul>
-          </article>
-
-          <article class="card">
-            <div class="card-head"><h2>Conectarte tú</h2></div>
-            <p class="muted small">Desde este mismo PC, usa esta dirección en Minecraft:</p>
-            <div class="address-row">
-              <code>localhost</code>
-              <button class="btn btn-soft" id="btnCopyLocal">Copiar</button>
-            </div>
-          </article>
-
-          <article class="card span2" id="cardPlayers">
-            <div class="card-head"><h2>Jugadores conectados</h2></div>
-            <div id="playerList" class="player-list empty">Nadie conectado ahora mismo.</div>
-          </article>
-        </div>
-      </section>
-
-      <!-- ============================ MODS ============================= -->
-      <section class="view" id="view-mods">
-        <header class="view-head">
-          <div>
-            <h1>Mods</h1>
-            <p class="muted">Arrastra archivos <code>.jar</code> o púlsalos para añadirlos.</p>
-          </div>
-          <div class="head-actions">
-            <button class="btn btn-ghost" id="btnOpenMods">Abrir carpeta</button>
-            <button class="btn btn-primary" id="btnAddMods">Añadir mods</button>
-          </div>
-        </header>
-
-        <div class="dropzone" id="dropzone">
-          <div class="dropzone-inner">
-            <strong>Suelta aquí tus mods</strong>
-            <span class="muted small">Solo archivos .jar</span>
-          </div>
-        </div>
-
-        <div class="mod-list" id="modList"></div>
-      </section>
-
-      <!-- =========================== AJUSTES =========================== -->
-      <section class="view" id="view-ajustes">
-        <header class="view-head">
-          <div>
-            <h1>Ajustes</h1>
-            <p class="muted">Configura el servidor, la memoria y el túnel.</p>
-          </div>
-        </header>
-
-        <div class="settings">
-          <article class="card">
-            <div class="card-head"><h2>Servidor</h2></div>
-
-            <label class="field">
-              <span>Carpeta del servidor</span>
-              <div class="row">
-                <input type="text" id="inpServerPath" placeholder="C:\MisServidores\MiMundo" />
-                <button class="btn btn-soft" id="btnPickFolder">Elegir…</button>
-              </div>
-            </label>
-
-            <label class="field">
-              <span>Versión de Minecraft</span>
-              <div class="row">
-                <select id="selVersion"><option>Cargando…</option></select>
-                <button class="btn btn-primary" id="btnInstall">Instalar</button>
-              </div>
-              <small class="muted" id="installStatus">Elige una carpeta vacía y una versión.</small>
-            </label>
-
-            <label class="field">
-              <span>Memoria RAM: <b id="ramLabel">4 GB</b></span>
-              <input type="range" id="rngRam" min="1" max="16" step="1" value="4" />
-              <small class="muted" id="ramHint"></small>
-            </label>
-          </article>
-
-          <article class="card">
-            <div class="card-head"><h2>Acceso desde fuera (ngrok)</h2></div>
-            <p class="muted small intro">
-              Permite que tus amigos entren sin tocar el router.
-              <a href="#" id="lnkNgrok">Consigue tu authtoken gratis aquí</a>.
-            </p>
-
-            <label class="field">
-              <span>Authtoken de ngrok</span>
-              <div class="row">
-                <input type="password" id="inpToken" placeholder="2abc…" />
-                <button class="btn btn-soft" id="btnToggleToken">Ver</button>
-              </div>
-              <small class="muted" id="tokenStatus"></small>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="chkAutoTunnel" checked />
-              <span>Abrir el túnel automáticamente al encender el servidor</span>
-            </label>
-
-            <button class="btn btn-soft full" id="btnSaveToken">Guardar authtoken</button>
-          </article>
-
-          <article class="card span2">
-            <div class="card-head"><h2>Opciones del mundo</h2></div>
-            <div class="props-grid">
-              <label class="field">
-                <span>Modo de juego</span>
-                <select id="propGamemode">
-                  <option value="survival">Supervivencia</option>
-                  <option value="creative">Creativo</option>
-                  <option value="adventure">Aventura</option>
-                  <option value="spectator">Espectador</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Dificultad</span>
-                <select id="propDifficulty">
-                  <option value="peaceful">Pacífico</option>
-                  <option value="easy">Fácil</option>
-                  <option value="normal">Normal</option>
-                  <option value="hard">Difícil</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Máx. jugadores</span>
-                <input type="number" id="propMaxPlayers" min="1" max="200" value="10" />
-              </label>
-              <label class="field">
-                <span>Distancia de vista</span>
-                <input type="number" id="propViewDistance" min="3" max="32" value="10" />
-              </label>
-              <label class="field span2">
-                <span>Mensaje del servidor (MOTD)</span>
-                <input type="text" id="propMotd" placeholder="Mi servidor" />
-              </label>
-              <label class="field">
-                <span>Semilla del mundo</span>
-                <input type="text" id="propSeed" placeholder="(aleatoria)" />
-              </label>
-              <label class="check">
-                <input type="checkbox" id="propPvp" />
-                <span>PvP activado</span>
-              </label>
-              <label class="check">
-                <input type="checkbox" id="propWhitelist" />
-                <span>Solo lista blanca</span>
-              </label>
-              <label class="check">
-                <input type="checkbox" id="propOnlineMode" />
-                <span>Requerir cuenta original (online-mode)</span>
-              </label>
-            </div>
-            <button class="btn btn-primary" id="btnSaveProps">Guardar opciones</button>
-            <small class="muted" id="propsStatus"></small>
-          </article>
-        </div>
-      </section>
-
-      <!-- =========================== CONSOLA =========================== -->
-      <section class="view" id="view-consola">
-        <header class="view-head">
-          <div>
-            <h1>Consola</h1>
-            <p class="muted">Registro en vivo del servidor.</p>
-          </div>
-          <div class="head-actions">
-            <button class="btn btn-ghost" id="btnClearLog">Limpiar</button>
-          </div>
-        </header>
-
-        <div class="console" id="console"></div>
-
-        <form class="console-input" id="cmdForm">
-          <input type="text" id="cmdInput" placeholder="Escribe un comando (ej. say hola, op TuNombre)" autocomplete="off" />
-          <button class="btn btn-primary" type="submit">Enviar</button>
-        </form>
-      </section>
-    </main>
+<header class="titlebar">
+  <div class="titlebar-brand">
+    <span class="logo" aria-hidden="true"></span>
+    <span class="titlebar-name">MineHost</span>
   </div>
+  <div class="titlebar-status" id="tbStatus" hidden>
+    <span class="pip"></span><span id="tbStatusText"></span>
+  </div>
+</header>
 
-  <!-- Overlay de progreso -->
-  <div class="overlay" id="overlay" hidden>
-    <div class="overlay-card">
-      <h3 id="overlayTitle">Trabajando…</h3>
-      <div class="bar"><div class="bar-fill" id="overlayBar"></div></div>
-      <p class="muted small" id="overlayText">—</p>
+<div class="app">
+  <aside class="sidebar">
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="panel"><svg class="ic"><use href="#i-panel"/></svg>Panel</button>
+      <button class="nav-item" data-view="mundo"><svg class="ic"><use href="#i-world"/></svg>Mundo</button>
+      <button class="nav-item" data-view="contenido"><svg class="ic"><use href="#i-mods"/></svg><span data-label="contenido">Mods</span></button>
+      <button class="nav-item" data-view="jugadores"><svg class="ic"><use href="#i-players"/></svg>Jugadores</button>
+      <button class="nav-item" data-view="copias"><svg class="ic"><use href="#i-backup"/></svg>Copias</button>
+      <button class="nav-item" data-view="ajustes"><svg class="ic"><use href="#i-settings"/></svg>Ajustes</button>
+      <button class="nav-item" data-view="consola"><svg class="ic"><use href="#i-console"/></svg>Consola</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="meter" id="meterRam" hidden>
+        <div class="meter-head"><span>Memoria</span><b class="num" id="ramValue">—</b></div>
+        <div class="track"><i id="ramBar"></i></div>
+      </div>
+      <div class="meter" id="meterCpu" hidden>
+        <div class="meter-head"><span>CPU</span><b class="num" id="cpuValue">—</b></div>
+        <div class="track"><i id="cpuBar"></i></div>
+      </div>
+      <div class="server-chip" id="serverChip">
+        <span class="pip" id="chipPip"></span>
+        <div class="server-chip-text">
+          <b id="chipTitle">Sin servidor</b>
+          <span id="chipSub">Sin configurar</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+
+    <!-- ============================== PANEL ============================== -->
+    <section class="view active" id="view-panel">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1">Panel</h1>
+          <p class="t-sm ink-muted">Enciende el servidor y comparte la dirección.</p>
+        </div>
+        <div class="vhead-actions">
+          <button class="btn btn-quiet" id="btnOpenFolder"><svg class="ic"><use href="#i-folder"/></svg>Carpeta</button>
+          <button class="btn btn-primary" id="btnPower" data-tour="power">
+            <svg class="ic"><use href="#i-power"/></svg><span id="btnPowerText">Encender</span>
+          </button>
+        </div>
+      </header>
+
+      <div id="panelSetup" class="setup" hidden>
+        <div class="setup-inner">
+          <h2 class="t-h2">Vamos a crear tu servidor</h2>
+          <p class="t-body ink-muted">
+            En un par de minutos lo tendrás funcionando. MineHost descarga todo lo necesario, también Java.
+          </p>
+          <button class="btn btn-primary btn-lg" id="btnStartWizard">Empezar</button>
+        </div>
+      </div>
+
+      <div id="panelBody">
+        <div class="grid-2">
+          <article class="card card-address" data-tour="address">
+            <div class="chead">
+              <h2 class="chead-title">Dirección para tus amigos</h2>
+              <span class="tag" id="tunnelTag">Sin túnel</span>
+            </div>
+            <div class="addr-row">
+              <code class="addr t-mono" id="addrPublic">—</code>
+              <button class="btn btn-quiet btn-icon" id="btnCopyPublic" title="Copiar" disabled>
+                <svg class="ic"><use href="#i-copy"/></svg>
+              </button>
+            </div>
+            <div class="addr-row addr-local">
+              <span class="addr-label t-caption ink-subtle">Para ti, en este PC</span>
+              <code class="addr addr-sm t-mono">localhost</code>
+              <button class="btn btn-quiet btn-icon" id="btnCopyLocal" title="Copiar">
+                <svg class="ic"><use href="#i-copy"/></svg>
+              </button>
+            </div>
+            <p class="t-caption ink-subtle" id="addrHint">Enciende el servidor para generar la dirección.</p>
+          </article>
+
+          <article class="card">
+            <div class="chead"><h2 class="chead-title">Estado</h2></div>
+            <dl class="stats">
+              <div><dt>Servidor</dt><dd id="stState">Apagado</dd></div>
+              <div><dt>Plataforma</dt><dd id="stPlatform">—</dd></div>
+              <div><dt>Conectados</dt><dd class="num" id="stPlayers">0</dd></div>
+              <div><dt>Encendido</dt><dd class="num" id="stUptime">—</dd></div>
+            </dl>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="chead">
+            <h2 class="chead-title">Jugadores conectados</h2>
+            <span class="tag" id="onlineCount">0</span>
+          </div>
+          <div id="onlineList" class="online-list"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============================== MUNDO ============================== -->
+    <section class="view" id="view-mundo">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1">Mundo</h1>
+          <p class="t-sm ink-muted">Tus mundos, las reglas de juego y los datapacks.</p>
+        </div>
+        <div class="vhead-actions">
+          <button class="btn btn-quiet" id="btnImportWorld"><svg class="ic"><use href="#i-download"/></svg>Importar</button>
+        </div>
+      </header>
+
+      <div class="tabs" id="worldTabs">
+        <button class="tab active" data-tab="mundos">Mundos</button>
+        <button class="tab" data-tab="reglas">Reglas de juego</button>
+        <button class="tab" data-tab="datapacks">Datapacks</button>
+      </div>
+
+      <div class="tabpane active" id="tab-mundos"><div id="worldList" class="rows"></div></div>
+
+      <div class="tabpane" id="tab-reglas">
+        <div class="notice" id="rulesNotice" hidden>
+          <svg class="ic"><use href="#i-warn"/></svg>
+          <span>Las reglas se aplican con el servidor encendido.</span>
+        </div>
+        <div id="rulesGroups" class="settings-groups"></div>
+      </div>
+
+      <div class="tabpane" id="tab-datapacks">
+        <div class="dropzone" id="dpDrop">
+          <strong class="t-title">Suelta aquí tus datapacks</strong>
+          <span class="t-sm ink-subtle">Archivos .zip · se aplican al reiniciar</span>
+        </div>
+        <div id="dpList" class="rows"></div>
+      </div>
+    </section>
+
+    <!-- ============================ CONTENIDO =========================== -->
+    <section class="view" id="view-contenido">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1" id="contentTitle">Mods</h1>
+          <p class="t-sm ink-muted" id="contentSub">Instalados en tu servidor.</p>
+        </div>
+        <div class="vhead-actions">
+          <button class="btn btn-quiet" id="btnOpenMods"><svg class="ic"><use href="#i-folder"/></svg>Carpeta</button>
+          <button class="btn btn-quiet" id="btnAddJars"><svg class="ic"><use href="#i-plus"/></svg>Añadir archivo</button>
+        </div>
+      </header>
+
+      <div class="tabs" id="contentTabs">
+        <button class="tab active" data-tab="instalados">Instalados</button>
+        <button class="tab" data-tab="buscar">Buscar en Modrinth</button>
+      </div>
+
+      <div class="tabpane active" id="tab-instalados">
+        <div class="dropzone" id="modDrop">
+          <strong class="t-title" id="dropTitle">Suelta aquí tus mods</strong>
+          <span class="t-sm ink-subtle">Archivos .jar</span>
+        </div>
+        <div id="modList" class="rows"></div>
+      </div>
+
+      <div class="tabpane" id="tab-buscar">
+        <div class="searchbar">
+          <svg class="ic ink-subtle"><use href="#i-search"/></svg>
+          <input type="text" id="mrQuery" placeholder="Busca por nombre… (JEI, Terralith, EssentialsX)" />
+        </div>
+        <div id="mrResults" class="rows"></div>
+      </div>
+    </section>
+
+    <!-- =========================== JUGADORES ============================ -->
+    <section class="view" id="view-jugadores">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1">Jugadores</h1>
+          <p class="t-sm ink-muted">Operadores, lista blanca y expulsiones.</p>
+        </div>
+      </header>
+
+      <div class="tabs" id="playerTabs">
+        <button class="tab active" data-tab="ops">Operadores</button>
+        <button class="tab" data-tab="whitelist">Lista blanca</button>
+        <button class="tab" data-tab="bans">Expulsados</button>
+        <button class="tab" data-tab="ipBans">IPs bloqueadas</button>
+      </div>
+
+      <div class="addrow">
+        <input type="text" id="plInput" placeholder="Nombre de Minecraft" autocomplete="off" />
+        <button class="btn btn-primary" id="plAdd"><svg class="ic"><use href="#i-plus"/></svg>Añadir</button>
+      </div>
+      <p class="t-caption ink-subtle addrow-hint" id="plHint"></p>
+
+      <div id="plList" class="rows"></div>
+    </section>
+
+    <!-- ============================= COPIAS ============================= -->
+    <section class="view" id="view-copias">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1">Copias de seguridad</h1>
+          <p class="t-sm ink-muted">Guarda tu mundo antes de que pase algo.</p>
+        </div>
+        <div class="vhead-actions">
+          <button class="btn btn-quiet" id="btnOpenBackups"><svg class="ic"><use href="#i-folder"/></svg>Carpeta</button>
+          <button class="btn btn-primary" id="btnBackupNow"><svg class="ic"><use href="#i-plus"/></svg>Crear copia</button>
+        </div>
+      </header>
+
+      <div class="card card-inline">
+        <div class="inline-grid">
+          <label class="field">
+            <span class="flabel">Copia automática al apagar</span>
+            <label class="switch"><input type="checkbox" id="cfgBackupOnStop"><i></i></label>
+          </label>
+          <label class="field">
+            <span class="flabel">Copias que se conservan</span>
+            <input type="number" id="cfgBackupsKeep" min="1" max="60" class="input-sm num" />
+          </label>
+          <label class="field">
+            <span class="flabel">Copia cada</span>
+            <div class="row-inline">
+              <label class="switch"><input type="checkbox" id="cfgBackupAuto"><i></i></label>
+              <input type="number" id="cfgBackupHours" min="1" max="48" class="input-sm num" />
+              <span class="t-sm ink-subtle">horas</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div id="backupList" class="rows"></div>
+    </section>
+
+    <!-- ============================ AJUSTES ============================= -->
+    <section class="view" id="view-ajustes">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1">Ajustes</h1>
+          <p class="t-sm ink-muted">Servidor, memoria, acceso y opciones del juego.</p>
+        </div>
+        <div class="vhead-actions">
+          <button class="btn btn-primary" id="btnSaveProps">Guardar cambios</button>
+        </div>
+      </header>
+
+      <div class="tabs" id="settingsTabs">
+        <button class="tab active" data-tab="general">General</button>
+        <button class="tab" data-tab="acceso">Acceso remoto</button>
+        <button class="tab" data-tab="opciones">Opciones del juego</button>
+        <button class="tab" data-tab="tareas">Tareas programadas</button>
+      </div>
+
+      <!-- General -->
+      <div class="tabpane active" id="tab-general">
+        <article class="card">
+          <div class="chead"><h2 class="chead-title">Servidor</h2></div>
+
+          <div class="field">
+            <span class="flabel">Carpeta del servidor</span>
+            <div class="row-inline">
+              <input type="text" id="inpPath" placeholder="Elige una carpeta…" readonly />
+              <button class="btn btn-quiet" id="btnPickFolder">Elegir…</button>
+            </div>
+            <small class="t-caption ink-subtle" id="pathHint">Aquí se guardan el mundo, los mods y las copias.</small>
+          </div>
+
+          <div class="field">
+            <span class="flabel">Plataforma y versión</span>
+            <div class="row-inline">
+              <select id="selPlatform"></select>
+              <select id="selVersion"><option>—</option></select>
+              <button class="btn btn-primary" id="btnInstall">Instalar</button>
+            </div>
+            <small class="t-caption ink-subtle" id="platformHint"></small>
+          </div>
+
+          <div class="field">
+            <span class="flabel">Memoria para el servidor</span>
+            <div class="ram-row">
+              <input type="range" id="ramRange" min="1" step="1" />
+              <div class="ram-input">
+                <input type="number" id="ramNumber" min="1" class="num" />
+                <span class="t-sm ink-subtle">GB</span>
+              </div>
+            </div>
+            <small class="t-caption ink-subtle" id="ramHint"></small>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="chead"><h2 class="chead-title">Comportamiento</h2></div>
+          <label class="switch-row">
+            <div>
+              <b class="t-body">Reiniciar si el servidor falla</b>
+              <span class="t-caption ink-subtle">Vuelve a arrancar solo tras un cierre inesperado.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="cfgAutoRestart"><i></i></label>
+          </label>
+          <label class="switch-row">
+            <div>
+              <b class="t-body">Abrir el túnel al encender</b>
+              <span class="t-caption ink-subtle">Genera la dirección pública automáticamente.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="cfgAutoTunnel"><i></i></label>
+          </label>
+        </article>
+      </div>
+
+      <!-- Acceso remoto -->
+      <div class="tabpane" id="tab-acceso">
+        <article class="card" data-tour="ngrok">
+          <div class="chead"><h2 class="chead-title">Acceso desde fuera de tu red</h2></div>
+          <p class="t-body ink-muted card-intro">
+            Tu PC no es accesible desde internet por sí solo. MineHost usa ngrok para crear un túnel,
+            así tus amigos entran sin que toques el router.
+          </p>
+
+          <ol class="steps">
+            <li>
+              <span class="step-n">1</span>
+              <div>
+                <b class="t-body">Crea una cuenta gratuita</b>
+                <p class="t-sm ink-muted">Necesitas verificar una tarjeta; ngrok no cobra nada por el plan gratuito.</p>
+                <button class="btn btn-quiet btn-sm" id="btnNgrokSignup">
+                  <svg class="ic"><use href="#i-external"/></svg>Abrir ngrok.com
+                </button>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div>
+                <b class="t-body">Copia tu authtoken</b>
+                <p class="t-sm ink-muted">Está en el panel, en «Your Authtoken».</p>
+                <button class="btn btn-quiet btn-sm" id="btnNgrokToken">
+                  <svg class="ic"><use href="#i-external"/></svg>Ver mi authtoken
+                </button>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div>
+                <b class="t-body">Pégalo aquí</b>
+                <div class="row-inline token-row">
+                  <input type="password" id="inpToken" placeholder="2ab…" />
+                  <button class="btn btn-quiet btn-icon" id="btnEyeToken" title="Mostrar">Ver</button>
+                  <button class="btn btn-primary" id="btnSaveToken">Guardar</button>
+                </div>
+                <small class="t-caption" id="tokenHint"></small>
+              </div>
+            </li>
+          </ol>
+        </article>
+      </div>
+
+      <!-- Opciones del juego -->
+      <div class="tabpane" id="tab-opciones">
+        <div id="propGroups" class="settings-groups"></div>
+      </div>
+
+      <!-- Tareas -->
+      <div class="tabpane" id="tab-tareas">
+        <article class="card">
+          <div class="chead"><h2 class="chead-title">Reinicio programado</h2></div>
+          <p class="t-body ink-muted card-intro">
+            Reiniciar cada día libera memoria y mantiene el servidor fluido. Se avisa por el chat antes.
+          </p>
+          <label class="switch-row">
+            <div><b class="t-body">Reiniciar todos los días</b></div>
+            <label class="switch"><input type="checkbox" id="cfgRestartOn"><i></i></label>
+          </label>
+          <div class="field">
+            <span class="flabel">Hora</span>
+            <input type="time" id="cfgRestartTime" class="input-sm" />
+            <small class="t-caption ink-subtle" id="nextRestartHint"></small>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============================ CONSOLA ============================= -->
+    <section class="view" id="view-consola">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1">Consola</h1>
+          <p class="t-sm ink-muted">Todo lo que ocurre en el servidor, en directo.</p>
+        </div>
+        <div class="vhead-actions">
+          <div class="searchbar searchbar-sm">
+            <svg class="ic ink-subtle"><use href="#i-search"/></svg>
+            <input type="text" id="logFilter" placeholder="Filtrar…" />
+          </div>
+          <button class="btn btn-quiet" id="btnClearLog">Limpiar</button>
+        </div>
+      </header>
+
+      <div class="console" id="console" role="log"></div>
+
+      <form class="cmdbar" id="cmdForm">
+        <span class="cmd-prompt t-mono">/</span>
+        <input type="text" id="cmdInput" class="t-mono" placeholder="say Hola a todos" autocomplete="off" spellcheck="false" />
+        <button class="btn btn-quiet" type="submit" id="cmdSend">Enviar</button>
+      </form>
+    </section>
+
+  </main>
+</div>
+
+<!-- Wizard -->
+<div class="modal-scrim" id="wizard" hidden>
+  <div class="modal modal-wizard" role="dialog" aria-modal="true" aria-labelledby="wzTitle">
+    <div class="wz-progress"><i id="wzProgress"></i></div>
+    <div class="modal-body">
+      <span class="t-caption ink-subtle" id="wzStep">Paso 1 de 3</span>
+      <h2 class="t-h2" id="wzTitle">¿Dónde guardamos el servidor?</h2>
+      <p class="t-body ink-muted" id="wzText"></p>
+      <div id="wzContent"></div>
+    </div>
+    <footer class="modal-foot">
+      <button class="btn btn-quiet" id="wzBack">Atrás</button>
+      <div class="grow"></div>
+      <button class="btn btn-quiet" id="wzCancel">Cancelar</button>
+      <button class="btn btn-primary" id="wzNext">Continuar</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="modal-scrim" id="confirm" hidden>
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle">
+    <div class="modal-body">
+      <h2 class="t-h2" id="cfTitle">¿Seguro?</h2>
+      <p class="t-body ink-muted" id="cfText"></p>
+    </div>
+    <footer class="modal-foot">
+      <div class="grow"></div>
+      <button class="btn btn-quiet" id="cfNo">Cancelar</button>
+      <button class="btn btn-danger" id="cfYes">Continuar</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Task progress -->
+<div class="modal-scrim" id="task" hidden>
+  <div class="modal modal-task" role="dialog" aria-modal="true">
+    <div class="modal-body">
+      <h2 class="t-title" id="taskTitle">Trabajando…</h2>
+      <div class="track track-lg"><i id="taskBar"></i></div>
+      <p class="t-sm ink-muted" id="taskText">—</p>
     </div>
   </div>
+</div>
 
-  <div class="toast-wrap" id="toasts"></div>
+<!-- Guided tour -->
+<div class="tour" id="tour" hidden>
+  <svg class="tour-mask" id="tourMask" aria-hidden="true">
+    <defs>
+      <mask id="tourCut">
+        <rect id="tourFill" width="100%" height="100%" fill="white"/>
+        <rect id="tourHole" rx="12" fill="black"/>
+      </mask>
+    </defs>
+    <rect width="100%" height="100%" fill="rgba(0,0,0,0.62)" mask="url(#tourCut)"/>
+    <rect id="tourRing" rx="12" fill="none" stroke="var(--accent-border)" stroke-width="1.5"/>
+  </svg>
+  <div class="tour-pop" id="tourPop" role="dialog" aria-live="polite">
+    <div class="tour-pop-head">
+      <span class="t-caption ink-subtle" id="tourStep">Paso 1 de 4</span>
+      <button class="tour-skip" id="tourSkip">Saltar</button>
+    </div>
+    <h3 class="t-title" id="tourTitle"></h3>
+    <p class="t-sm ink-muted" id="tourText"></p>
+    <div class="tour-pop-foot">
+      <div class="tour-dots" id="tourDots"></div>
+      <button class="btn btn-primary btn-sm" id="tourNext">Siguiente</button>
+    </div>
+  </div>
+</div>
 
-  <script src="app.js"></script>
+<div class="toasts" id="toasts"></div>
+
+<script src="app.js"></script>
 </body>
 </html>

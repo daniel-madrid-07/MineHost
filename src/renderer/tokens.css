@@ -1,0 +1,177 @@
+/* =============================================================================
+   MineHost · design tokens
+   Depth comes from a surface ladder + hairlines. There are no drop shadows in
+   this app; if something needs to lift, it moves up the ladder.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../../assets/fonts/InterVariable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../../assets/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../../assets/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: block;
+}
+
+:root {
+  /* --- Surface ladder. Warm hue (~30) so it reads as earth, not neutral. --- */
+  --canvas:          #0E0D0C;
+  --surface-1:       #161514;
+  --surface-2:       #1C1A18;
+  --surface-3:       #211F1D;
+  --hairline:        #262320;
+  --hairline-strong: #34302B;
+
+  /* --- Ink --- */
+  --ink:          #F2EFEA;
+  --ink-muted:    #B5AEA5;
+  --ink-subtle:   #7E766D;
+  --ink-disabled: #55504A;
+
+  /* --- Accent. Signal, not decoration: status badges and one CTA per view. -- */
+  --accent:        #6BBF44;
+  --accent-hover:  #7BD152;
+  --accent-soft:   rgba(107, 191, 68, 0.14);
+  --accent-border: rgba(107, 191, 68, 0.30);
+
+  /* --- Semantic server states --- */
+  --running:  #6BBF44;
+  --starting: #E0A82E;
+  --stopped:  #7E766D;
+  --crashed:  #E5484D;
+
+  --warn:      #E0A82E;
+  --warn-soft: rgba(224, 168, 46, 0.13);
+  --danger:      #E5484D;
+  --danger-soft: rgba(229, 72, 77, 0.13);
+  --info:      #6E9FD8;
+
+  /* --- Type --- */
+  --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, monospace;
+
+  /* --- Radius. Size communicates the scale of the element. --- */
+  --r-chip:   4px;
+  --r-row:    6px;
+  --r-btn:    8px;
+  --r-card:   10px;
+  --r-modal:  14px;
+  --r-pill:   9999px;
+
+  /* --- Space, 4px base --- */
+  --s-1: 2px;  --s-2: 4px;  --s-3: 8px;  --s-4: 12px;
+  --s-5: 16px; --s-6: 24px; --s-7: 32px; --s-8: 48px;
+
+  /* --- Motion --- */
+  --dur-instant: 80ms;
+  --dur-fast:   120ms;
+  --dur-base:   180ms;
+  --dur-slow:   240ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:  cubic-bezier(0.4, 0, 1, 1);
+  --ease-io:  cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Chrome --- */
+  --titlebar-h: 38px;
+  --sidebar-w:  228px;
+}
+
+/* =============================== Reset ==================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* `hidden` must win over any display rule a component sets. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font);
+  font-feature-settings: 'cv01' on, 'cv03' on, 'ss03' on, 'zero' on, 'calt' on;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--canvas);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+}
+
+/* Grain. Kills the flat-template feel; nods at Minecraft's stone texture. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================ Type scale ================================== */
+/* Tracking tightens as size grows — the hand-set detail most tools skip. */
+
+.t-display { font-size: 32px; font-weight: 600; line-height: 1.15; letter-spacing: -0.8px; }
+.t-h1      { font-size: 24px; font-weight: 600; line-height: 1.20; letter-spacing: -0.5px; }
+.t-h2      { font-size: 18px; font-weight: 550; line-height: 1.25; letter-spacing: -0.3px; }
+.t-title   { font-size: 15px; font-weight: 500; line-height: 1.30; letter-spacing: -0.15px; }
+.t-body    { font-size: 13px; font-weight: 400; line-height: 1.50; }
+.t-sm      { font-size: 12px; font-weight: 400; line-height: 1.45; }
+.t-caption { font-size: 11px; font-weight: 450; line-height: 1.40; letter-spacing: 0.2px; }
+
+.t-mono {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every live number is tabular so digits never dance on update. */
+.num { font-variant-numeric: tabular-nums; }
+
+.ink-muted  { color: var(--ink-muted); }
+.ink-subtle { color: var(--ink-subtle); }
+
+/* ============================== A11y ====================================== */
+
+:focus { outline: none; }
+
+:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
+  border-radius: var(--r-chip);
+}
+
+::selection { background: var(--accent-soft); color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================ Scrollbars ================================== */
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--hairline-strong);
+  border-radius: var(--r-pill);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #48423B; background-clip: content-box; }

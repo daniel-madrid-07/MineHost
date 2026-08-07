@@ -4,101 +4,89 @@ const https = require('https');
 const os = require('os');
 const { spawn, execFile } = require('child_process');
 
-const NEOFORGE_META = 'https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge';
-const NEOFORGE_JAR = (v) =>
-  `https://maven.neoforged.net/releases/net/neoforged/neoforge/${v}/neoforge-${v}-installer.jar`;
+const { PLATFORMS } = require('./platforms');
 
-const ADOPTIUM_API =
-  'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk';
+const ADOPTIUM = (major) =>
+  `https://api.adoptium.net/v3/binary/latest/${major}/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk`;
 
-function httpsGet(url, redirects = 0) {
-  return new Promise((resolve, reject) => {
-    if (redirects > 8) return reject(new Error('Demasiadas redirecciones'));
-    https
-      .get(url, { headers: { 'User-Agent': 'MineHost' } }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          res.resume();
-          return resolve(httpsGet(new URL(res.headers.location, url).toString(), redirects + 1));
-        }
-        if (res.statusCode !== 200) {
-          res.resume();
-          return reject(new Error(`HTTP ${res.statusCode} en ${url}`));
-        }
-        const chunks = [];
-        res.on('data', (c) => chunks.push(c));
-        res.on('end', () => resolve(Buffer.concat(chunks)));
-      })
-      .on('error', reject);
-  });
-}
+const UA = 'MineHost/1.0';
 
 function download(url, dest, onProgress, label, redirects = 0) {
   return new Promise((resolve, reject) => {
     if (redirects > 8) return reject(new Error('Demasiadas redirecciones'));
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     const file = fs.createWriteStream(dest);
-    https
-      .get(url, { headers: { 'User-Agent': 'MineHost' } }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          res.resume();
-          file.close();
-          fs.rmSync(dest, { force: true });
-          return resolve(
-            download(new URL(res.headers.location, url).toString(), dest, onProgress, label, redirects + 1)
-          );
-        }
-        if (res.statusCode !== 200) {
-          res.resume();
-          file.close();
-          fs.rmSync(dest, { force: true });
-          return reject(new Error(`HTTP ${res.statusCode} descargando ${label}`));
-        }
-        const total = parseInt(res.headers['content-length'] || '0', 10);
-        let received = 0;
-        res.on('data', (chunk) => {
-          received += chunk.length;
-          if (onProgress && total) {
-            onProgress({ label, percent: Math.round((received / total) * 100) });
-          }
-        });
-        res.pipe(file);
-        file.on('finish', () => file.close(() => resolve(dest)));
-      })
-      .on('error', (err) => {
+    https.get(url, { headers: { 'User-Agent': UA } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        res.resume();
         file.close();
         fs.rmSync(dest, { force: true });
-        reject(err);
+        return resolve(download(new URL(res.headers.location, url).toString(), dest, onProgress, label, redirects + 1));
+      }
+      if (res.statusCode !== 200) {
+        res.resume();
+        file.close();
+        fs.rmSync(dest, { force: true });
+        return reject(new Error(`HTTP ${res.statusCode} al descargar ${label}`));
+      }
+      const total = parseInt(res.headers['content-length'] || '0', 10);
+      let done = 0;
+      res.on('data', (c) => {
+        done += c.length;
+        if (onProgress && total) onProgress({ label, percent: Math.round((done / total) * 100) });
       });
+      res.pipe(file);
+      file.on('finish', () => file.close(() => resolve(dest)));
+    }).on('error', (err) => {
+      file.close();
+      fs.rmSync(dest, { force: true });
+      reject(err);
+    });
   });
 }
 
-function javaVersionOf(javaExe) {
+function javaVersionOf(exe) {
   return new Promise((resolve) => {
-    execFile(javaExe, ['-version'], (err, _stdout, stderr) => {
+    execFile(exe, ['-version'], { timeout: 8000, windowsHide: true }, (err, _out, stderr) => {
       if (err) return resolve(null);
       const m = /version "(\d+)(?:\.(\d+))?/.exec(stderr || '');
       if (!m) return resolve(null);
       let major = parseInt(m[1], 10);
       if (major === 1 && m[2]) major = parseInt(m[2], 10);
-      resolve({ path: javaExe, major });
+      resolve({ path: exe, major });
     });
   });
 }
 
-async function detectJava() {
-  const candidates = [];
+/** Minecraft's own Java requirement by version. */
+function requiredJava(mcVersion) {
+  const parts = String(mcVersion).split('.').map(Number);
+  const major = parts[0] || 1;
+  const minor = parts[1] || 0;
+  if (major >= 26) return 21;
+  if (major === 1 && minor >= 20) return 21;
+  if (major === 1 && minor >= 18) return 17;
+  if (major === 1 && minor >= 17) return 16;
+  return 8;
+}
+
+async function detectJava(minMajor = 21) {
   const roots = [
     'C:\\Program Files\\Eclipse Adoptium',
     'C:\\Program Files\\Java',
     'C:\\Program Files\\Microsoft\\jdk',
     'C:\\Program Files\\Amazon Corretto',
     'C:\\Program Files\\Zulu',
+    'C:\\Program Files\\BellSoft',
     path.join(os.homedir(), '.minehost', 'java'),
   ];
 
+  const candidates = [];
   for (const root of roots) {
     if (!fs.existsSync(root)) continue;
-    for (const entry of fs.readdirSync(root)) {
+    let entries = [];
+    try { entries = fs.readdirSync(root); } catch (_) { continue; }
+    for (const entry of entries) {
       const exe = path.join(root, entry, 'bin', 'java.exe');
       if (fs.existsSync(exe)) candidates.push(exe);
     }
@@ -112,150 +100,144 @@ async function detectJava() {
   const checked = [];
   for (const c of candidates) {
     const info = await javaVersionOf(c);
-    if (info && info.major) checked.push(info);
+    if (info?.major) checked.push(info);
   }
 
-  const good = checked.filter((c) => c.major >= 21).sort((a, b) => b.major - a.major);
-  return {
-    found: good.length > 0,
-    best: good[0] || null,
-    all: checked,
-  };
+  const usable = checked.filter((c) => c.major >= minMajor).sort((a, b) => a.major - b.major);
+  return { found: usable.length > 0, best: usable[0] || null, all: checked, required: minMajor };
 }
 
-async function listNeoForgeVersions() {
-  const raw = await httpsGet(NEOFORGE_META);
-  const data = JSON.parse(raw.toString('utf8'));
-  const versions = Array.isArray(data) ? data : data.versions || [];
+async function installJava(major, onProgress) {
+  const root = path.join(os.homedir(), '.minehost', 'java');
+  fs.mkdirSync(root, { recursive: true });
 
-  // NeoForge encodes MC version in its own: 21.10.x -> Minecraft 1.21.10
-  const stable = versions.filter((v) => !/beta|alpha|rc/i.test(v));
-  const byMinecraft = new Map();
+  const zipPath = path.join(os.tmpdir(), `minehost-jdk${major}-${Date.now()}.zip`);
+  await download(ADOPTIUM(major), zipPath, onProgress, `Java ${major}`);
 
-  for (const v of stable) {
-    const m = /^(\d+)\.(\d+)\./.exec(v);
-    if (!m) continue;
-    const mc = `1.${m[1]}.${m[2]}`;
-    if (!byMinecraft.has(mc)) byMinecraft.set(mc, []);
-    byMinecraft.get(mc).push(v);
-  }
+  onProgress?.({ label: `Instalando Java ${major}…`, indeterminate: true });
+  const AdmZip = require('adm-zip');
+  new AdmZip(zipPath).extractAllTo(root, true);
+  fs.rmSync(zipPath, { force: true });
 
-  const result = [];
-  for (const [mc, list] of byMinecraft) {
-    list.sort((a, b) => {
-      const pa = a.split('.').map(Number);
-      const pb = b.split('.').map(Number);
-      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-        if ((pb[i] || 0) !== (pa[i] || 0)) return (pb[i] || 0) - (pa[i] || 0);
-      }
-      return 0;
-    });
-    result.push({ minecraft: mc, latest: list[0], all: list });
-  }
-
-  result.sort((a, b) => {
-    const pa = a.minecraft.split('.').map(Number);
-    const pb = b.minecraft.split('.').map(Number);
-    for (let i = 0; i < 3; i++) {
-      if ((pb[i] || 0) !== (pa[i] || 0)) return (pb[i] || 0) - (pa[i] || 0);
+  for (const entry of fs.readdirSync(root)) {
+    const exe = path.join(root, entry, 'bin', 'java.exe');
+    if (fs.existsSync(exe)) {
+      const info = await javaVersionOf(exe);
+      if (info?.major >= major) return exe;
     }
-    return 0;
-  });
-
-  return result;
+  }
+  throw new Error('No se encontró java.exe después de instalarlo.');
 }
 
+/** Reports what is already installed in a folder, if anything. */
 function inspectServer(serverPath) {
-  if (!serverPath || !fs.existsSync(serverPath)) {
-    return { installed: false, version: null, hasWorld: false, eula: false };
+  const empty = { installed: false, platform: null, version: null, build: null, hasWorld: false, eula: false };
+  if (!serverPath || !fs.existsSync(serverPath)) return empty;
+
+  const metaFile = path.join(serverPath, '.minehost.json');
+  let meta = null;
+  if (fs.existsSync(metaFile)) {
+    try { meta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch (_) {}
   }
-  const nfDir = path.join(serverPath, 'libraries', 'net', 'neoforged', 'neoforge');
-  let version = null;
-  if (fs.existsSync(nfDir)) {
-    const dirs = fs.readdirSync(nfDir).filter((d) =>
-      fs.existsSync(path.join(nfDir, d, 'win_args.txt'))
-    );
-    version = dirs.sort().pop() || null;
-  }
+
+  const hasArgs = ['neoforged/neoforge', 'minecraftforge/forge'].some((rel) => {
+    const dir = path.join(serverPath, 'libraries', 'net', ...rel.split('/'));
+    return fs.existsSync(dir)
+      && fs.readdirSync(dir).some((d) => fs.existsSync(path.join(dir, d, 'win_args.txt')));
+  });
+  const hasJar = ['server.jar', 'minecraft_server.jar'].some((f) =>
+    fs.existsSync(path.join(serverPath, f))
+  );
+
   const eulaFile = path.join(serverPath, 'eula.txt');
+  const levelName = meta?.levelName || 'world';
+
   return {
-    installed: !!version,
-    version,
-    hasWorld: fs.existsSync(path.join(serverPath, 'world')),
+    installed: !!(meta?.platform && (hasArgs || hasJar)) || hasArgs || hasJar,
+    platform: meta?.platform || (hasArgs ? 'neoforge' : hasJar ? 'vanilla' : null),
+    version: meta?.version || null,
+    build: meta?.build || null,
+    minecraft: meta?.minecraft || meta?.version || null,
+    hasWorld: fs.existsSync(path.join(serverPath, levelName)),
     eula: fs.existsSync(eulaFile) && /eula\s*=\s*true/i.test(fs.readFileSync(eulaFile, 'utf8')),
   };
 }
 
-async function installJava(onProgress) {
-  const targetRoot = path.join(os.homedir(), '.minehost', 'java');
-  fs.mkdirSync(targetRoot, { recursive: true });
-
-  const zipPath = path.join(os.tmpdir(), `minehost-jdk21-${Date.now()}.zip`);
-  onProgress?.({ label: 'Descargando Java 21', percent: 0 });
-  await download(ADOPTIUM_API, zipPath, onProgress, 'Descargando Java 21');
-
-  onProgress?.({ label: 'Extrayendo Java 21', percent: 50 });
-  const AdmZip = require('adm-zip');
-  new AdmZip(zipPath).extractAllTo(targetRoot, true);
-  fs.rmSync(zipPath, { force: true });
-
-  onProgress?.({ label: 'Java 21 listo', percent: 100 });
-
-  for (const entry of fs.readdirSync(targetRoot)) {
-    const exe = path.join(targetRoot, entry, 'bin', 'java.exe');
-    if (fs.existsSync(exe)) return exe;
-  }
-  throw new Error('No se encontró java.exe tras extraer el JDK');
+function writeMeta(serverPath, meta) {
+  fs.writeFileSync(
+    path.join(serverPath, '.minehost.json'),
+    JSON.stringify({ ...meta, updatedAt: new Date().toISOString() }, null, 2),
+    'utf8'
+  );
 }
 
-async function installServer({ serverPath, neoforgeVersion, onProgress }) {
+async function installServer({ serverPath, platformId, minecraft, build, onProgress }) {
+  const platform = PLATFORMS[platformId];
+  if (!platform) throw new Error(`Plataforma desconocida: ${platformId}`);
+
   fs.mkdirSync(serverPath, { recursive: true });
 
-  let java = await detectJava();
-  let javaExe = java.best?.path;
-  if (!javaExe) {
-    javaExe = await installJava(onProgress);
+  const javaMajor = requiredJava(minecraft);
+  onProgress?.({ label: 'Buscando Java…', indeterminate: true });
+  let java = await detectJava(javaMajor);
+  let javaPath = java.best?.path;
+  if (!javaPath) {
+    onProgress?.({ label: `Descargando Java ${javaMajor}…`, percent: 0 });
+    javaPath = await installJava(javaMajor, onProgress);
   }
 
-  const installerJar = path.join(serverPath, `neoforge-${neoforgeVersion}-installer.jar`);
-  onProgress?.({ label: `Descargando NeoForge ${neoforgeVersion}`, percent: 0 });
-  await download(NEOFORGE_JAR(neoforgeVersion), installerJar, onProgress, `NeoForge ${neoforgeVersion}`);
+  let resolvedBuild = build;
 
-  onProgress?.({ label: 'Instalando servidor (puede tardar un poco)', percent: 0, indeterminate: true });
+  if (platform.install === 'installer') {
+    const url = platform.installerUrl(minecraft, build);
+    const jar = path.join(serverPath, `installer-${build}.jar`);
+    await download(url, jar, onProgress, `${platform.name} ${build}`);
 
-  await new Promise((resolve, reject) => {
-    const proc = spawn(javaExe, ['-jar', path.basename(installerJar), '--installServer'], {
-      cwd: serverPath,
-      windowsHide: true,
+    onProgress?.({ label: 'Instalando el servidor (esto tarda un poco)…', indeterminate: true });
+    await new Promise((resolve, reject) => {
+      const proc = spawn(javaPath, ['-jar', path.basename(jar), '--installServer'], {
+        cwd: serverPath, windowsHide: true,
+      });
+      let tail = '';
+      proc.stdout.on('data', (d) => {
+        const line = d.toString().trim().split('\n').pop();
+        if (line) onProgress?.({ label: line.slice(0, 88), indeterminate: true });
+      });
+      proc.stderr.on('data', (d) => { tail += d.toString(); });
+      proc.on('error', reject);
+      proc.on('close', (code) => code === 0
+        ? resolve()
+        : reject(new Error(`El instalador falló (código ${code}). ${tail.slice(-300)}`)));
     });
-    let stderr = '';
-    proc.stdout.on('data', (d) => {
-      const text = d.toString();
-      const line = text.trim().split('\n').pop();
-      if (line) onProgress?.({ label: line.slice(0, 90), percent: 0, indeterminate: true });
-    });
-    proc.stderr.on('data', (d) => { stderr += d.toString(); });
-    proc.on('error', reject);
-    proc.on('close', (code) => {
-      if (code === 0) return resolve();
-      reject(new Error(`El instalador de NeoForge falló (código ${code}). ${stderr.slice(-400)}`));
-    });
+
+    fs.rmSync(jar, { force: true });
+    fs.rmSync(`${jar}.log`, { force: true });
+  } else {
+    const resolved = await platform.jarUrl(minecraft);
+    const url = typeof resolved === 'string' ? resolved : resolved.url;
+    if (typeof resolved === 'object' && resolved.build) resolvedBuild = resolved.build;
+    await download(url, path.join(serverPath, 'server.jar'), onProgress, `${platform.name} ${minecraft}`);
+  }
+
+  fs.writeFileSync(path.join(serverPath, 'eula.txt'), 'eula=true\n', 'utf8');
+  if (platform.modsDir) fs.mkdirSync(path.join(serverPath, platform.modsDir), { recursive: true });
+
+  writeMeta(serverPath, {
+    platform: platformId,
+    platformName: platform.name,
+    minecraft,
+    version: platform.install === 'installer' ? build : minecraft,
+    build: resolvedBuild,
+    javaPath,
+    javaMajor,
+    levelName: 'world',
   });
 
-  fs.rmSync(installerJar, { force: true });
-  fs.rmSync(`${installerJar}.log`, { force: true });
-  fs.writeFileSync(path.join(serverPath, 'eula.txt'), 'eula=true\n', 'utf8');
-  fs.mkdirSync(path.join(serverPath, 'mods'), { recursive: true });
-
-  onProgress?.({ label: 'Servidor instalado', percent: 100 });
-  return { ok: true, javaPath: javaExe, version: neoforgeVersion };
+  onProgress?.({ label: 'Servidor listo', percent: 100 });
+  return { ok: true, javaPath, platform: platformId, minecraft, build: resolvedBuild };
 }
 
 module.exports = {
-  detectJava,
-  installJava,
-  listNeoForgeVersions,
-  installServer,
-  inspectServer,
-  download,
+  detectJava, installJava, requiredJava,
+  installServer, inspectServer, writeMeta, download,
 };

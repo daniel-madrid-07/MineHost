@@ -1,107 +1,99 @@
 /**
- * Generates assets/icon.ico (a stylised grass block) without external
- * dependencies, by writing a multi-size ICO of raw BGRA bitmaps.
+ * Builds assets/icon.ico from MineHost_logo.png.
+ *
+ * Run with Electron (not plain Node) so nativeImage can decode/resize the PNG:
+ *   npx electron assets/make-icon.js
+ *
+ * The source art sits on a white card with generous margins, so it is cropped
+ * to the block and re-matted on the app's canvas colour before scaling.
  */
 const fs = require('fs');
 const path = require('path');
+const { app, nativeImage } = require('electron');
 
 const SIZES = [16, 24, 32, 48, 64, 128, 256];
+const SRC = path.join(__dirname, 'MineHost_logo.png');
+const OUT = path.join(__dirname, 'icon.ico');
 
-const hex = (h) => [
-  parseInt(h.slice(5, 7), 16), // B
-  parseInt(h.slice(3, 5), 16), // G
-  parseInt(h.slice(1, 3), 16), // R
-];
-
-const GRASS_TOP = hex('#7ACC4F');
-const GRASS_MID = hex('#5FA83B');
-const DIRT_HI = hex('#7D5637');
-const DIRT = hex('#6B4A2F');
-const DIRT_LO = hex('#553A25');
-
-function pixel(x, y, size) {
-  const u = x / size;
-  const v = y / size;
-
-  // Rounded-square mask
-  const r = 0.17;
-  const cx = Math.min(u, 1 - u);
-  const cy = Math.min(v, 1 - v);
-  if (cx < r && cy < r) {
-    const dx = r - cx;
-    const dy = r - cy;
-    if (dx * dx + dy * dy > r * r) return null;
-  }
-
-  // Grass layer occupies the top ~38%
-  if (v < 0.38) {
-    const speck = ((x * 7 + y * 13) % 11) < 3;
-    if (v < 0.07) return GRASS_TOP;
-    return speck ? GRASS_TOP : GRASS_MID;
-  }
-  // Transition edge
-  if (v < 0.44) return DIRT_HI;
-
-  const speck = ((x * 5 + y * 11) % 13) < 4;
-  const deep = ((x * 3 + y * 7) % 17) < 3;
-  if (deep) return DIRT_LO;
-  return speck ? DIRT_HI : DIRT;
-}
-
-function bmpFor(size) {
-  const header = Buffer.alloc(40);
-  header.writeUInt32LE(40, 0);
-  header.writeInt32LE(size, 4);
-  header.writeInt32LE(size * 2, 8); // image + mask
-  header.writeUInt16LE(1, 12);
-  header.writeUInt16LE(32, 14);
-  header.writeUInt32LE(0, 16);
-  header.writeUInt32LE(size * size * 4, 20);
-
-  const pixels = Buffer.alloc(size * size * 4);
-  // ICO stores rows bottom-up
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const src = pixel(x, y, size);
-      const off = ((size - 1 - y) * size + x) * 4;
-      if (!src) {
-        pixels.writeUInt32LE(0, off);
-        continue;
+/** Finds the bounding box of everything that is not near-white. */
+function contentBounds(bitmap, w, h) {
+  let top = h, left = w, right = 0, bottom = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2], a = bitmap[i + 3];
+      if (a > 24 && !(r > 232 && g > 232 && b > 232)) {
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+        if (x < left) left = x;
+        if (x > right) right = x;
       }
-      pixels[off] = src[0];
-      pixels[off + 1] = src[1];
-      pixels[off + 2] = src[2];
-      pixels[off + 3] = 255;
     }
   }
-
-  const maskRow = Math.ceil(size / 32) * 4;
-  const mask = Buffer.alloc(maskRow * size, 0);
-
-  return Buffer.concat([header, pixels, mask]);
+  return { left, top, width: right - left + 1, height: bottom - top + 1 };
 }
 
-const images = SIZES.map(bmpFor);
+function icoEntry(png, size) {
+  const header = Buffer.alloc(16);
+  header[0] = size === 256 ? 0 : size;
+  header[1] = size === 256 ? 0 : size;
+  header.writeUInt16LE(1, 4);
+  header.writeUInt16LE(32, 6);
+  header.writeUInt32LE(png.length, 8);
+  return header;
+}
 
-const dir = Buffer.alloc(6 + images.length * 16);
-dir.writeUInt16LE(0, 0);
-dir.writeUInt16LE(1, 2);
-dir.writeUInt16LE(images.length, 4);
+function build() {
+  if (!fs.existsSync(SRC)) throw new Error(`No se encuentra ${SRC}`);
 
-let offset = dir.length;
-images.forEach((img, i) => {
-  const size = SIZES[i];
-  const e = 6 + i * 16;
-  dir[e] = size === 256 ? 0 : size;
-  dir[e + 1] = size === 256 ? 0 : size;
-  dir[e + 2] = 0;
-  dir[e + 3] = 0;
-  dir.writeUInt16LE(1, e + 4);
-  dir.writeUInt16LE(32, e + 6);
-  dir.writeUInt32LE(img.length, e + 8);
-  dir.writeUInt32LE(offset, e + 12);
-  offset += img.length;
+  const source = nativeImage.createFromPath(SRC);
+  if (source.isEmpty()) throw new Error('No se pudo leer el PNG del logo.');
+
+  const { width, height } = source.getSize();
+  const box = contentBounds(source.toBitmap(), width, height);
+
+  // Square the crop around the artwork, with a little breathing room.
+  const side = Math.round(Math.max(box.width, box.height) * 1.08);
+  const cx = box.left + box.width / 2;
+  const cy = box.top + box.height / 2;
+  const crop = {
+    x: Math.max(0, Math.round(cx - side / 2)),
+    y: Math.max(0, Math.round(cy - side / 2)),
+    width: Math.min(width, side),
+    height: Math.min(height, side),
+  };
+
+  const art = source.crop(crop);
+
+  const pngs = SIZES.map((size) => {
+    const scaled = art.resize({ width: size, height: size, quality: 'best' });
+    return { size, png: scaled.toPNG() };
+  });
+
+  // ICO: 6-byte header, then one 16-byte directory entry per image.
+  const dir = Buffer.alloc(6);
+  dir.writeUInt16LE(1, 2);
+  dir.writeUInt16LE(pngs.length, 4);
+
+  let offset = 6 + pngs.length * 16;
+  const entries = [];
+  for (const { size, png } of pngs) {
+    const entry = icoEntry(png, size);
+    entry.writeUInt32LE(offset, 12);
+    entries.push(entry);
+    offset += png.length;
+  }
+
+  fs.writeFileSync(OUT, Buffer.concat([dir, ...entries, ...pngs.map((p) => p.png)]));
+  console.log(`icon.ico generado · recorte ${crop.width}x${crop.height} · ${SIZES.join(', ')} px`);
+}
+
+app.whenReady().then(() => {
+  try {
+    build();
+    app.exit(0);
+  } catch (err) {
+    console.error(err.message);
+    app.exit(1);
+  }
 });
-
-fs.writeFileSync(path.join(__dirname, 'icon.ico'), Buffer.concat([dir, ...images]));
-console.log('icon.ico generado');

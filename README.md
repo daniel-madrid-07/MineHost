@@ -2,83 +2,87 @@
 
 # MineHost
 
-**Crea y gestiona servidores de Minecraft con mods en tu propio PC, sin tocar el router.**
+**Un panel tipo Aternos, pero el servidor corre en tu propio PC.**
 
-Una alternativa local a Aternos: tú tienes el control, tu hardware, tus mundos.
-Lo único que necesitas es pegar tu authtoken de ngrok y pulsar un botón.
+Instala, configura y comparte un servidor de Minecraft sin tocar el router,
+sin consolas y sin editar archivos de configuración a mano.
 
 </div>
 
 ---
 
-## Qué hace
-
-MineHost automatiza todo lo tedioso de montar un servidor de Minecraft con mods:
-
-- **Instala el servidor por ti.** Elige la versión de Minecraft y MineHost descarga NeoForge, lo instala y acepta el EULA. Si no tienes Java 21, también lo descarga.
-- **Gestiona los mods visualmente.** Arrastra archivos `.jar` a la ventana. Activa, desactiva o borra mods sin tocar carpetas.
-- **Configura el mundo sin editar archivos.** Dificultad, modo de juego, PvP, lista blanca, MOTD, semilla… todo con formularios.
-- **Abre el servidor a tus amigos.** Integración con ngrok: genera una dirección pública sin abrir puertos ni tener acceso al router.
-- **Consola en vivo.** Ve el registro del servidor en tiempo real y escribe comandos (`op`, `whitelist add`, `say`…) desde la propia app.
-
 ## Por qué existe
 
-Servicios como Aternos son cómodos, pero tienen colas, límites de RAM y tu mundo vive en un servidor ajeno. Montarlo en casa da mejor rendimiento y control total, pero implica pelearse con instaladores, argumentos de Java, `server.properties` y port forwarding, que muchas veces ni siquiera es posible (routers de terceros, CGNAT del operador).
+Aternos es cómodo, pero hay colas, la RAM está limitada y tu mundo vive en un servidor ajeno. Montarlo en casa da mejor rendimiento y control total, pero implica pelearse con instaladores, argumentos de la JVM, `server.properties` y port forwarding, que muchas veces ni siquiera es posible: routers a los que no tienes acceso, o CGNAT del operador.
 
-MineHost cubre justo ese hueco: la potencia de un servidor local con la sencillez de un panel web.
+MineHost cubre ese hueco. Tu hardware y tus mundos, con la comodidad de un panel web.
+
+## Qué hace
+
+**Instalación automática.** Elige plataforma y versión; MineHost descarga el servidor, lo instala y acepta el EULA. Si no tienes la versión de Java correcta, también la descarga (una copia privada, sin tocar tu Java del sistema).
+
+**Seis plataformas.** NeoForge, Forge, Fabric, Paper, Purpur y Vanilla. La app te explica en cada caso si tus amigos necesitarán instalar mods o no.
+
+**Mods y plugins.** Buscador de Modrinth integrado con resolución automática de dependencias y verificación SHA-1, o arrastra tus propios `.jar`. Activa y desactiva sin borrar nada.
+
+**Mundos.** Varios mundos en la misma carpeta, cambiar el activo, importar y exportar en `.zip`, y reiniciar el Nether o el End por separado.
+
+**Jugadores.** Operadores, lista blanca, expulsados e IPs bloqueadas. Con el servidor encendido se aplican por comando; apagado, editando los JSON. Los nombres se resuelven contra Mojang.
+
+**Copias de seguridad.** Manuales, automáticas al apagar o cada X horas, con rotación. Se hacen con `save-off` / `save-all flush` para que nunca salga un mundo corrupto, y al restaurar el mundo actual se aparta en vez de borrarse.
+
+**Ajustes visuales.** Las 43 opciones de `server.properties` y 28 reglas de juego, agrupadas por lo que hacen y explicadas en español.
+
+**Consola en vivo.** Registro con filtro y colores por nivel, y envío de comandos.
+
+**Acceso desde fuera.** Túnel de ngrok integrado: descarga el binario, guarda tu authtoken y publica la dirección con un botón para copiarla.
+
+**Vigilancia.** Uso de RAM y CPU en directo, reinicio automático si el servidor se cae y reinicios programados con aviso previo por el chat.
 
 ## Instalación
 
-1. Descarga el instalador desde la sección [Releases](../../releases).
-2. Ejecuta `MineHost-Setup-1.0.0.exe` y sigue el asistente.
-3. Abre MineHost desde el menú de inicio o el acceso directo del escritorio.
+1. Descarga el instalador desde [Releases](../../releases).
+2. Ejecuta `MineHost Setup 1.1.0.exe`.
+3. Ábrelo desde el menú de inicio.
 
-> **Nota sobre el antivirus:** MineHost descarga `ngrok.exe`, una herramienta legítima de túneles que algunos antivirus marcan como sospechosa por precaución (también la usan programas maliciosos). Si Windows Defender la bloquea, añade una excepción para la carpeta `%USERPROFILE%\.minehost`.
+Windows mostrará un aviso de editor desconocido: el ejecutable no está firmado porque un certificado cuesta dinero. Pulsa **Más información › Ejecutar de todas formas**.
+
+> **Antivirus:** MineHost descarga `ngrok.exe` para el túnel. Algunos antivirus lo marcan por precaución, porque también lo usa software malicioso. Si Windows Defender lo bloquea, añade una excepción para `%USERPROFILE%\.minehost`.
 
 ## Primeros pasos
 
-### 1. Instala un servidor
+La primera vez, un asistente de tres pasos te pregunta dónde guardar el servidor, qué plataforma quieres y qué versión. Al terminar, un tutorial guiado señala las cuatro cosas que importan.
 
-En **Ajustes**, elige una carpeta vacía donde vivirá el servidor, selecciona la versión de Minecraft y pulsa **Instalar**. MineHost se encarga del resto (puede tardar unos minutos la primera vez).
+Para que entren desde fuera de tu red hace falta una cuenta gratuita de ngrok: la app te lleva a la página, guardas el authtoken y ya está. Ngrok pide verificar una tarjeta para habilitar túneles TCP en el plan gratuito; es un requisito suyo contra el abuso, no cobra nada.
 
-### 2. Configura el acceso desde fuera
-
-Para que tus amigos entren desde otra red, necesitas una cuenta gratuita de ngrok:
-
-1. Regístrate en [ngrok.com](https://dashboard.ngrok.com/signup).
-2. Copia tu authtoken desde [esta página](https://dashboard.ngrok.com/get-started/your-authtoken).
-3. Pégalo en **Ajustes → Acceso desde fuera** y pulsa **Guardar authtoken**.
-
-> ngrok exige verificar una tarjeta (sin cargo) para habilitar túneles TCP en el plan gratuito. Es un requisito suyo contra el abuso, no de MineHost.
-
-### 3. Enciende y comparte
-
-Pulsa **Encender servidor** en el Panel. Cuando esté listo:
-
-- **Tú**, desde el mismo PC, te conectas a `localhost`.
-- **Tus amigos** usan la dirección que aparece en el Panel (botón **Copiar**).
+Cuando el servidor esté en marcha:
+- **Tú**, desde este mismo PC, entras con `localhost`.
+- **Tus amigos** usan la dirección del panel.
 
 ## Preguntas frecuentes
 
-**¿Mi PC hace de servidor o lo hace ngrok?**
-Tu PC. Ngrok solo actúa de puente de red para que el tráfico entre desde internet. Si apagas el PC, el servidor se cae.
+**¿Mi PC hace de servidor, o lo hace ngrok?**
+Tu PC. Ngrok solo hace de puente para que el tráfico entre desde internet. Si apagas el PC, el servidor se cae.
 
 **¿La dirección cambia?**
-Sí, en el plan gratuito de ngrok cambia cada vez que reinicias el túnel. Los planes de pago permiten dominios fijos.
+Sí, en el plan gratuito de ngrok cambia cada vez que se reinicia el túnel.
 
 **¿Puedo usar mi mundo actual?**
-Sí. Copia tu carpeta `world` dentro de la carpeta del servidor, sustituyendo la existente.
+Sí. Exporta la carpeta `world` a un `.zip` e impórtalo desde la pestaña Mundo.
 
-**¿Funcionan todos los mods?**
-Los mods solo de cliente (Sodium, Iris, minimapas de render…) no funcionan en un servidor dedicado y algunos impiden que arranque. Desactívalos desde la pestaña **Mods** si el servidor falla al iniciar.
+**¿Por qué no arranca con ciertos mods?**
+Los mods solo de cliente (Sodium, Iris, minimapas) no funcionan en un servidor dedicado y algunos impiden el arranque. El buscador los marca como «Solo cliente»; desactívalos desde la pestaña Mods.
 
-**¿Necesito Java instalado?**
-No. Si no encuentra Java 21, MineHost descarga una copia privada en `%USERPROFILE%\.minehost\java`.
+**¿Cuánta RAM le pongo?**
+Con 40 mods, entre 6 y 8 GB va sobrado. Deja siempre 2 GB libres para Windows.
+
+**¿Necesito Java?**
+No. Si falta, MineHost instala la versión correcta en `%USERPROFILE%\.minehost\java`.
 
 ## Requisitos
 
 - Windows 10 o superior (64 bits)
-- 4 GB de RAM libres como mínimo (8 GB recomendado con muchos mods)
+- 4 GB de RAM libres como mínimo, 8 GB recomendado con mods
 - Conexión a internet para la instalación inicial
 
 ## Desarrollo
@@ -87,27 +91,43 @@ No. Si no encuentra Java 21, MineHost descarga una copia privada en `%USERPROFIL
 git clone https://github.com/<usuario>/MineHost.git
 cd MineHost
 npm install
-npm start          # ejecuta la app en modo desarrollo
-npm run dist       # genera el instalador en release/
+npm start        # modo desarrollo
+npm run dist     # genera el instalador en release/
 ```
 
 ### Estructura
 
 ```
 src/
-  main/            proceso principal de Electron
-    main.js          arranque, ventana y canales IPC
-    installer.js     descarga de Java y NeoForge
-    serverManager.js ciclo de vida del servidor y consola
-    ngrokManager.js  túnel y authtoken
-    settings.js      configuración persistente
-    preload.js       puente seguro con la interfaz
-  renderer/        interfaz (HTML, CSS y JS sin frameworks)
-assets/            icono de la aplicación
+  main/                  proceso principal
+    main.js                ventana y canales IPC
+    platforms.js           las seis plataformas y sus APIs
+    installer.js           descarga de Java y del servidor
+    serverManager.js       ciclo de vida, consola, RAM/CPU, flags de Aikar
+    ngrokManager.js        túnel y authtoken
+    playerManager.js       ops, whitelist y baneos
+    backupManager.js       copias con volcado seguro y rotación
+    worldManager.js        mundos: importar, exportar, reiniciar dimensiones
+    modrinth.js            búsqueda e instalación con dependencias
+    scheduler.js           reinicios y copias programadas
+    catalog.js             propiedades y gamerules en español
+    settings.js            configuración persistente
+    preload.js             puente aislado con la interfaz
+  renderer/              interfaz, sin frameworks
+    tokens.css             sistema de diseño
+    styles.css             componentes
+    app.js                 lógica, asistente y tutorial
+assets/
+  fonts/                 Inter y JetBrains Mono (SIL OFL)
+  make-icon.js           genera el icono sin dependencias
 ```
+
+### Notas de diseño
+
+La profundidad se construye con una escalera de superficies y filetes de 1 px; no hay una sola sombra. El verde queda reservado para el estado del servidor, así que el botón primario es claro sobre oscuro. Los números usan cifras tabulares para que no bailen al actualizarse, y todo respeta `prefers-reduced-motion`.
 
 ## Licencia
 
-MIT. Consulta [LICENSE](LICENSE).
+MIT, en [LICENSE](LICENSE). Las tipografías incluidas se distribuyen bajo SIL Open Font License.
 
-MineHost no está afiliado a Mojang, Microsoft, NeoForged ni ngrok. Minecraft es una marca registrada de Mojang AB.
+MineHost no está afiliado a Mojang, Microsoft, NeoForged, PaperMC, Modrinth ni ngrok. Minecraft es una marca registrada de Mojang AB.
