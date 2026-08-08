@@ -847,17 +847,42 @@ async function loadPlatformVersions() {
 
   try {
     const versions = await api.installer.versions(platformId);
-    sel.innerHTML = '';
-    for (const v of versions.slice(0, 40)) {
-      const opt = document.createElement('option');
-      opt.value = JSON.stringify({ minecraft: v.minecraft, build: v.build });
-      opt.textContent = `Minecraft ${v.minecraft}`;
-      sel.append(opt);
-    }
+    fillVersions(sel, versions);
     sel.disabled = false;
   } catch (err) {
     sel.innerHTML = '<option>Sin conexión</option>';
     toast('No se pudo cargar la lista de versiones.', 'error');
+  }
+}
+
+/** Fills a version dropdown, newest first and grouped by Minecraft family. */
+function fillVersions(sel, versions) {
+  sel.innerHTML = '';
+  if (!versions.length) {
+    sel.innerHTML = '<option>Sin versiones disponibles</option>';
+    return;
+  }
+
+  let group = null;
+  let currentFamily = null;
+
+  for (const v of versions) {
+    const parts = String(v.minecraft).split('.');
+    // Historic versions group as 1.21.x; the year-based ones group by year.
+    const family = parts[0] === '1' ? parts.slice(0, 2).join('.') : parts[0];
+    if (family !== currentFamily) {
+      currentFamily = family;
+      group = document.createElement('optgroup');
+      group.label = `Minecraft ${family}`;
+      sel.append(group);
+    }
+
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify({ minecraft: v.minecraft, build: v.build });
+    opt.textContent = v.prerelease
+      ? `Minecraft ${v.minecraft} · beta`
+      : `Minecraft ${v.minecraft}`;
+    group.append(opt);
   }
 }
 
@@ -1097,13 +1122,7 @@ const wizard = {
 
       try {
         const versions = await api.installer.versions(this.data.platform);
-        sel.innerHTML = '';
-        for (const v of versions.slice(0, 40)) {
-          const opt = document.createElement('option');
-          opt.value = JSON.stringify({ minecraft: v.minecraft, build: v.build });
-          opt.textContent = `Minecraft ${v.minecraft}`;
-          sel.append(opt);
-        }
+        fillVersions(sel, versions);
         this.data.version = JSON.parse(sel.value);
         sel.addEventListener('change', () => { this.data.version = JSON.parse(sel.value); });
       } catch (_) {

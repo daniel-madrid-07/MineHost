@@ -64,7 +64,8 @@ async function neoforgeVersions() {
   const data = await getJson(
     'https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge'
   );
-  const all = (Array.isArray(data) ? data : data.versions || []).filter((v) => !/beta|alpha|rc/i.test(v));
+  const all = Array.isArray(data) ? data : data.versions || [];
+
   const byMc = new Map();
   for (const v of all) {
     const m = /^(\d+)\.(\d+)\./.exec(v);
@@ -73,14 +74,21 @@ async function neoforgeVersions() {
     // NeoForge mirrors the Minecraft version: 21.10.x -> 1.21.10, but the
     // year-based scheme (26.x) drops the historic "1." prefix.
     const mc = major >= 26 ? `${major}.${m[2]}` : `1.${major}.${m[2]}`;
-    if (!byMc.has(mc)) byMc.set(mc, []);
-    byMc.get(mc).push(v);
+    if (!byMc.has(mc)) byMc.set(mc, { stable: [], pre: [] });
+    (/beta|alpha|rc/i.test(v) ? byMc.get(mc).pre : byMc.get(mc).stable).push(v);
   }
+
+  // Several Minecraft versions only ever got beta builds; offering nothing at
+  // all for them is worse than offering the beta, so fall back to it.
   return [...byMc.entries()]
-    .map(([minecraft, builds]) => ({
-      minecraft,
-      build: builds.sort((a, b) => compareMc(b, a))[0],
-    }))
+    .map(([minecraft, { stable, pre }]) => {
+      const pool = stable.length ? stable : pre;
+      return {
+        minecraft,
+        build: pool.sort((a, b) => compareMc(b, a))[0],
+        prerelease: !stable.length,
+      };
+    })
     .sort((a, b) => compareMc(a.minecraft, b.minecraft));
 }
 
@@ -90,15 +98,24 @@ async function forgeVersions() {
   const data = await getJson(
     'https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json'
   );
-  const out = new Map();
+  // Prefer the recommended build, but keep "latest" for versions that never
+  // got one — otherwise those Minecraft versions disappear from the list.
+  const recommended = new Map();
+  const latest = new Map();
+
   for (const [key, build] of Object.entries(data.promos || {})) {
     const m = /^(.+?)-(recommended|latest)$/.exec(key);
     if (!m || !isRelease(m[1])) continue;
-    const mc = m[1];
-    if (m[2] === 'recommended' || !out.has(mc)) out.set(mc, build);
+    (m[2] === 'recommended' ? recommended : latest).set(m[1], build);
   }
-  return [...out.entries()]
-    .map(([minecraft, build]) => ({ minecraft, build }))
+
+  const versions = new Set([...recommended.keys(), ...latest.keys()]);
+  return [...versions]
+    .map((minecraft) => ({
+      minecraft,
+      build: recommended.get(minecraft) || latest.get(minecraft),
+      prerelease: !recommended.has(minecraft),
+    }))
     .sort((a, b) => compareMc(a.minecraft, b.minecraft));
 }
 
