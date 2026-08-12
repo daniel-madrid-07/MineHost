@@ -17,17 +17,45 @@ const icon = (name) => {
 
 const S = {
   settings: {},
+  server: null,          // active server entry
+  servers: [],
   info: {},
   meta: {},
-  server: { status: 'stopped', players: [] },
+  state: { status: 'stopped', players: [] },
   tunnel: { status: 'stopped', address: null },
+  net: {},
   view: 'panel',
   uptimeTimer: null,
   props: {},
   propsDirty: {},
   playerTab: 'ops',
   players: { ops: [], whitelist: [], bans: [], ipBans: [] },
+  strings: {},
+  lang: 'en',
 };
+
+/* ------------------------------ Localisation ------------------------------ */
+
+/** Looks up a string and fills {placeholders}. Falls back to the key itself. */
+function t(key, vars) {
+  let out = S.strings[key];
+  if (out == null) return key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) out = out.split(`{${k}}`).join(String(v));
+  }
+  return out;
+}
+
+/** Re-renders every static string marked up in the HTML. */
+function applyStrings() {
+  document.querySelectorAll('[data-i18n]').forEach((n) => {
+    n.textContent = t(n.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach((n) => {
+    n.placeholder = t(n.dataset.i18nPh);
+  });
+  document.documentElement.lang = S.lang;
+}
 
 /* -------------------------------- Feedback -------------------------------- */
 
@@ -94,7 +122,7 @@ const fmtSize = (b) =>
   : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB`
   : `${Math.max(1, Math.round(b / 1024))} KB`;
 
-const fmtDate = (ms) => new Date(ms).toLocaleString('es-ES', {
+const fmtDate = (ms) => new Date(ms).toLocaleString(S.lang, {
   day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
 });
 
@@ -159,7 +187,7 @@ function addLog({ line, level }) {
 }
 
 api.server.onLog(addLog);
-api.ngrok.onLog(({ line, level }) => addLog({ line: `[túnel] ${line}`, level }));
+api.ngrok.onLog(({ line, level }) => addLog({ line: `[${t('console.tunnelPrefix')}] ${line}`, level }));
 
 $('logFilter').addEventListener('input', (e) => {
   logFilterText = e.target.value.trim().toLowerCase();
@@ -181,13 +209,13 @@ $('cmdForm').addEventListener('submit', async (e) => {
 
 /* ------------------------------ Server state ------------------------------ */
 
-const LABEL = { stopped: 'Apagado', starting: 'Arrancando', running: 'En marcha', stopping: 'Apagando' };
+const statusLabel = (k) => t(`status.${k}`);
 
 function renderServer() {
-  const { status, players, startedAt } = S.server;
-  const platform = S.meta.platforms?.find((p) => p.id === (S.info.platform || S.settings.platform));
+  const { status, players, startedAt } = S.state;
+  const platform = S.meta.platforms?.find((p) => p.id === (S.info.platform || S.server?.platform));
 
-  $('stState').textContent = LABEL[status];
+  $('stState').textContent = statusLabel(status);
   $('stPlayers').textContent = players.length;
   $('stPlatform').textContent = S.info.installed
     ? `${platform?.name || '—'} · ${S.info.minecraft || '—'}`
@@ -195,37 +223,39 @@ function renderServer() {
 
   const pipClass = status === 'running' ? 'running' : status === 'stopped' ? '' : 'starting';
   $('chipPip').className = `pip ${pipClass}`;
-  $('chipTitle').textContent = S.info.installed ? (platform?.name || 'Servidor') : 'Sin servidor';
-  $('chipSub').textContent = S.info.installed
-    ? `${S.info.minecraft || ''} · ${LABEL[status]}`
-    : 'Sin configurar';
+  $('chipTitle').textContent = S.server?.name || 'MineHost';
+  $('chipSub').textContent = !S.server
+    ? t('servers.empty')
+    : S.info.installed
+      ? `${S.info.minecraft || ''} · ${statusLabel(status)}`
+      : t('servers.notInstalled');
 
   $('tbStatus').hidden = status === 'stopped';
-  $('tbStatusText').textContent = LABEL[status];
+  $('tbStatusText').textContent = statusLabel(status);
   $('tbStatus').querySelector('.pip').className = `pip ${pipClass}`;
 
   const btn = $('btnPower');
   btn.disabled = status === 'starting' || status === 'stopping' || !S.info.installed;
   $('btnPowerText').textContent =
-    status === 'stopped' ? 'Encender' : status === 'running' ? 'Apagar' : LABEL[status];
+    status === 'stopped' ? t('panel.powerStart')
+    : status === 'running' ? t('panel.powerStop')
+    : statusLabel(status);
   btn.className = `btn ${status === 'stopped' ? 'btn-primary' : 'btn-quiet'}`;
 
   const list = $('onlineList');
   $('onlineCount').textContent = players.length;
+  list.innerHTML = '';
   if (!players.length) {
-    list.innerHTML = '';
-    const hint = el('span', 't-sm ink-subtle',
-      status === 'running' ? 'Nadie conectado todavía.' : 'El servidor está apagado.');
-    list.append(hint);
+    list.append(el('span', 't-sm ink-subtle',
+      status === 'running' ? t('panel.nobody') : t('panel.serverOff')));
   } else {
-    list.innerHTML = '';
     for (const p of players) {
       const tag = el('div', 'player-tag');
       tag.append(el('span', 'pip'), el('span', null, p));
-      const kick = el('button', 'btn btn-quiet btn-sm', 'Expulsar');
+      const kick = el('button', 'btn btn-quiet btn-sm', t('panel.kick'));
       kick.addEventListener('click', async () => {
-        await api.players.kick(p, 'Expulsado por el administrador');
-        toast(`${p} expulsado.`);
+        await api.players.kick(p, t('players.kickReason'));
+        toast(t('players.kicked', { name: p }));
       });
       tag.append(kick);
       list.append(tag);
@@ -235,9 +265,10 @@ function renderServer() {
   clearInterval(S.uptimeTimer);
   if (status === 'running' && startedAt) {
     const tick = () => {
-      const s = Math.floor((Date.now() - startedAt) / 1000);
-      const p = (n) => String(n).padStart(2, '0');
-      $('stUptime').textContent = `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
+      const sec = Math.floor((Date.now() - startedAt) / 1000);
+      const pad = (n) => String(n).padStart(2, '0');
+      $('stUptime').textContent =
+        `${pad(Math.floor(sec / 3600))}:${pad(Math.floor((sec % 3600) / 60))}:${pad(sec % 60)}`;
     };
     tick();
     S.uptimeTimer = setInterval(tick, 1000);
@@ -253,26 +284,48 @@ function renderServer() {
   }
 }
 
+/** The address card depends on how this server is exposed. */
 function renderTunnel() {
+  const mode = S.server?.exposure || 'tunnel';
   const { status, address } = S.tunnel;
-  $('tunnelTag').textContent =
-    status === 'running' ? 'En directo' : status === 'starting' ? 'Abriendo…' : 'Sin túnel';
-  $('tunnelTag').className = `tag ${status === 'running' ? 'live' : ''}`;
-  $('addrPublic').textContent = address || '—';
-  $('btnCopyPublic').disabled = !address;
-  $('addrHint').textContent = address
-    ? 'La dirección cambia cada vez que se reinicia el túnel (plan gratuito de ngrok).'
-    : S.settings.ngrokToken
-      ? 'Enciende el servidor para generar la dirección.'
-      : 'Añade tu authtoken de ngrok en Ajustes › Acceso remoto.';
+  const tag = $('tunnelTag');
+
+  let shown = null;
+  let hint = '';
+
+  if (mode === 'tunnel') {
+    tag.hidden = false;
+    tag.textContent = status === 'running' ? t('panel.tunnelLive')
+      : status === 'starting' ? t('panel.tunnelOpening')
+      : t('panel.tunnelNone');
+    tag.className = `tag ${status === 'running' ? 'live' : ''}`;
+    shown = address;
+    hint = address ? t('panel.addressHintTunnel')
+      : S.server?.ngrokToken ? t('panel.addressHintStart')
+      : t('panel.addressHintToken');
+  } else if (mode === 'portforward') {
+    tag.hidden = true;
+    const port = S.server?.port || 25565;
+    shown = S.net.publicIp ? `${S.net.publicIp}:${port}` : null;
+    hint = t('panel.addressHintForward');
+  } else {
+    tag.hidden = true;
+    const port = S.server?.port || 25565;
+    shown = S.net.localIp ? `${S.net.localIp}:${port}` : null;
+    hint = t('panel.addressHintLan');
+  }
+
+  $('addrPublic').textContent = shown || '—';
+  $('btnCopyPublic').disabled = !shown;
+  $('addrHint').textContent = hint;
 }
 
-api.server.onState((s) => { S.server = s; renderServer(); });
+api.server.onState((st) => { S.state = st; renderServer(); });
 api.ngrok.onState((s) => { S.tunnel = s; renderTunnel(); });
 
-api.server.onStats(({ ramMb, ramPercent, cpuPercent }) => {
+api.server.onStats(({ ramMb, cpuPercent }) => {
   $('ramValue').textContent = ramMb > 1024 ? `${(ramMb / 1024).toFixed(1)} GB` : `${ramMb} MB`;
-  const ramPct = Math.min(100, Math.round((ramMb / 1024 / (S.settings.ramGb || 4)) * 100));
+  const ramPct = Math.min(100, Math.round((ramMb / 1024 / (S.server?.ramGb || 4)) * 100));
   const rb = $('ramBar');
   rb.style.width = `${ramPct}%`;
   rb.className = ramPct > 90 ? 'hot' : ramPct > 75 ? 'warn' : '';
@@ -286,19 +339,19 @@ api.server.onStats(({ ramMb, ramPercent, cpuPercent }) => {
 
 api.server.onCrash(({ reason }) => {
   if (reason === 'port') {
-    toast('El puerto 25565 ya está en uso. ¿Tienes otro servidor abierto?', 'error');
+    toast(t('access.forwardClosed', { port: S.server?.port || 25565 }), 'error');
   } else if (reason === 'eula') {
-    toast('Falta aceptar el EULA de Minecraft.', 'error');
+    toast('EULA', 'error');
   } else {
-    toast('El servidor se cerró de forma inesperada. Mira la consola.', 'error');
+    toast(t('status.stopped'), 'error');
   }
 });
 
 /* -------------------------------- Power ---------------------------------- */
 
 $('btnPower').addEventListener('click', async () => {
-  if (S.server.status === 'running') {
-    taskStart('Apagando el servidor');
+  if (S.state.status === 'running') {
+    taskStart(t('panel.powerStop'));
     const r = await api.server.stop();
     taskEnd();
     if (!r.ok) toast(r.error, 'error');
@@ -309,9 +362,9 @@ $('btnPower').addEventListener('click', async () => {
   const r = await api.server.start();
   if (!r.ok) { toast(r.error, 'error'); return; }
 
-  if (S.settings.autoTunnel) {
-    if (!S.settings.ngrokToken) {
-      toast('Servidor encendido. Añade tu authtoken para que entren desde fuera.', 'warn');
+  if (S.server?.autoTunnel) {
+    if (!S.server?.ngrokToken) {
+      toast(t('panel.addressHintToken'), 'warn');
       return;
     }
     const t = await api.ngrok.start(25565);
@@ -322,14 +375,14 @@ $('btnPower').addEventListener('click', async () => {
 $('btnCopyPublic').addEventListener('click', async () => {
   if (!S.tunnel.address) return;
   await navigator.clipboard.writeText(S.tunnel.address);
-  toast('Dirección copiada.');
+  toast(t('common.copied'));
 });
 $('btnCopyLocal').addEventListener('click', async () => {
   await navigator.clipboard.writeText('localhost');
-  toast('Copiado: localhost');
+  toast(t('common.copied'));
 });
 $('btnOpenFolder').addEventListener('click', () => {
-  if (S.settings.serverPath) api.shell.openPath(S.settings.serverPath);
+  if (S.server?.serverPath) api.shell.openPath(S.server?.serverPath);
 });
 
 /* --------------------------------- Mods ---------------------------------- */
@@ -337,30 +390,25 @@ $('btnOpenFolder').addEventListener('click', () => {
 async function refreshMods() {
   const box = $('modList');
   if (!S.info.installed) {
-    emptyState(box, 'mods', 'Aún no hay servidor',
-      'Instala un servidor para poder añadir mods.',
-      { label: 'Ir a Ajustes', onClick: () => go('ajustes') });
+    emptyState(box, 'mods', t('mods.noServer'), t('mods.noServerHint'),
+      { label: t('nav.settings'), onClick: () => go('ajustes') });
     return;
   }
 
   const res = await api.mods.list();
   const isPlugins = res.kind === 'plugins';
-  $('contentTitle').textContent = isPlugins ? 'Plugins' : 'Mods';
-  document.querySelector('[data-label="contenido"]').textContent = isPlugins ? 'Plugins' : 'Mods';
-  $('dropTitle').textContent = isPlugins ? 'Suelta aquí tus plugins' : 'Suelta aquí tus mods';
-  $('contentSub').textContent = isPlugins
-    ? 'Tus amigos no necesitan instalar nada.'
-    : 'Tus amigos necesitan los mismos mods para entrar.';
+  $('contentTitle').textContent = t(isPlugins ? 'mods.titlePlugins' : 'mods.title');
+  document.querySelector('[data-label="contenido"]').textContent =
+    t(isPlugins ? 'nav.plugins' : 'nav.mods');
+  $('dropTitle').textContent = t(isPlugins ? 'mods.dropPlugins' : 'mods.drop');
+  $('contentSub').textContent = t(isPlugins ? 'mods.subtitlePlugins' : 'mods.subtitle');
 
   if (!res.supported) {
-    emptyState(box, 'mods', 'Vanilla no admite mods',
-      'Cambia a NeoForge, Fabric o Paper desde Ajustes para poder añadirlos.');
+    emptyState(box, 'mods', t('mods.vanillaTitle'), t('mods.vanillaHint'));
     return;
   }
   if (!res.items.length) {
-    emptyState(box, 'mods', 'Todavía no hay nada instalado',
-      isPlugins ? 'Arrastra archivos .jar o búscalos en Modrinth.'
-                : 'Arrastra archivos .jar o búscalos en Modrinth.');
+    emptyState(box, 'mods', t('mods.empty'), t('mods.emptyHint'));
     return;
   }
 
@@ -372,18 +420,17 @@ async function refreshMods() {
     main.append(el('span', 'row-sub', fmtSize(m.size)));
 
     const actions = el('div', 'row-actions');
-    const toggle = el('button', 'btn btn-quiet btn-sm', m.enabled ? 'Desactivar' : 'Activar');
+    const toggle = el('button', 'btn btn-quiet btn-sm', m.enabled ? t('mods.disable') : t('mods.enable'));
     toggle.addEventListener('click', async () => { await api.mods.toggle(m.file); refreshMods(); });
 
     const del = el('button', 'btn btn-quiet btn-sm btn-icon');
-    del.title = 'Borrar';
+    del.title = t('common.delete');
     del.append(icon('trash'));
     del.addEventListener('click', async () => {
-      if (!await confirmAsk('Borrar archivo',
-        `Se eliminará "${m.name}" de la carpeta del servidor.`, 'Borrar')) return;
+      if (!await confirmAsk(t('mods.deleteTitle'), t('mods.deleteText', { name: m.name }), t('common.delete'))) return;
       await api.mods.remove(m.file);
       refreshMods();
-      toast('Archivo eliminado.');
+      toast(t('mods.deleted'));
     });
 
     actions.append(toggle, del);
@@ -396,7 +443,7 @@ $('btnAddJars').addEventListener('click', async () => {
   const files = await api.dialog.pickJars();
   if (!files.length) return;
   const r = await api.mods.add(files);
-  if (r.ok) { toast(`${r.added} archivo(s) añadidos.`); refreshMods(); }
+  if (r.ok) { toast(t('mods.added', { n: r.added })); refreshMods(); }
   else toast(r.error, 'error');
 });
 $('btnOpenMods').addEventListener('click', () => api.mods.openFolder());
@@ -410,18 +457,23 @@ function wireDrop(zone, exts, onFiles) {
     const paths = [...e.dataTransfer.files]
       .map((f) => api.pathForFile(f))
       .filter((p) => p && exts.some((x) => p.toLowerCase().endsWith(x)));
-    if (!paths.length) return toast(`Solo se aceptan archivos ${exts.join(' o ')}`, 'warn');
+    if (!paths.length) return toast(t('mods.onlyJar', { ext: exts.join(', ') }), 'warn');
     onFiles(paths);
   });
 }
 
 wireDrop($('modDrop'), ['.jar'], async (paths) => {
   const r = await api.mods.add(paths);
-  if (r.ok) { toast(`${r.added} archivo(s) añadidos.`); refreshMods(); }
+  if (r.ok) { toast(t('mods.added', { n: r.added })); refreshMods(); }
   else toast(r.error, 'error');
 });
 
 /* -------------------------------- Modrinth -------------------------------- */
+
+wireTabs('contentTabs', (tab) => {
+  // Show something useful the first time the tab is opened, before any typing.
+  if (tab === 'buscar' && !$('mrResults').childElementCount) runSearch('');
+});
 
 let searchTimer = null;
 $('mrQuery').addEventListener('input', (e) => {
@@ -433,8 +485,7 @@ $('mrQuery').addEventListener('input', (e) => {
 async function runSearch(query) {
   const box = $('mrResults');
   if (!S.info.installed) {
-    emptyState(box, 'search', 'Primero instala un servidor',
-      'Necesito saber la versión y la plataforma para buscar contenido compatible.');
+    emptyState(box, 'search', t('mods.searchFirst'), t('mods.searchFirstHint'));
     return;
   }
 
@@ -442,10 +493,10 @@ async function runSearch(query) {
   for (let i = 0; i < 4; i++) box.append(el('div', 'skeleton'));
 
   const res = await api.modrinth.search(query, 0);
-  if (res.error) { emptyState(box, 'warn', 'No se pudo buscar', res.error); return; }
+  if (res.error) { emptyState(box, 'warn', t('mods.searchFailed'), res.error); return; }
   if (!res.hits?.length) {
-    emptyState(box, 'search', 'Sin resultados',
-      `Nada compatible con ${S.info.minecraft} para esta plataforma.`);
+    emptyState(box, 'search', t('mods.noResults'),
+      t('mods.noResultsHint', { version: S.info.minecraft || '' }));
     return;
   }
 
@@ -469,27 +520,27 @@ async function runSearch(query) {
 
     const actions = el('div', 'row-actions');
     if (hit.serverSide === 'unsupported') {
-      const warn = el('span', 'badge-mini warn', 'Solo cliente');
-      warn.title = 'Este mod no hace nada en el servidor.';
+      const warn = el('span', 'badge-mini warn', t('mods.clientOnly'));
+      warn.title = t('mods.clientOnlyHint');
       actions.append(warn);
     }
-    const add = el('button', 'btn btn-quiet btn-sm', 'Instalar');
+    const add = el('button', 'btn btn-quiet btn-sm', t('mods.install'));
     add.addEventListener('click', async () => {
       add.disabled = true;
-      add.textContent = 'Instalando…';
-      taskStart(`Instalando ${hit.title}`);
+      add.textContent = t('mods.installing');
+      taskStart(t('mods.installing'));
       const r = await api.modrinth.install(hit.id);
       taskEnd();
       if (r.ok) {
-        add.textContent = 'Instalado';
+        add.textContent = t('mods.installed');
         add.classList.add('is-on');
         const extra = r.installed.length - 1;
         toast(extra > 0
-          ? `${hit.title} instalado, con ${extra} dependencia(s).`
-          : `${hit.title} instalado.`);
+          ? t('mods.installedDeps', { name: hit.title, n: extra })
+          : t('mods.installedOk', { name: hit.title }));
       } else {
         add.disabled = false;
-        add.textContent = 'Instalar';
+        add.textContent = t('mods.install');
         toast(r.error, 'error');
       }
     });
@@ -512,8 +563,8 @@ const PLAYER_COPY = {
 };
 
 async function refreshPlayers() {
-  if (!S.settings.serverPath) return;
-  S.players = await api.players.read(S.settings.serverPath);
+  if (!S.server?.serverPath) return;
+  S.players = await api.players.read(S.server?.serverPath);
   renderPlayers();
 }
 
@@ -525,7 +576,7 @@ function renderPlayers() {
   const box = $('plList');
   const items = S.players[tab] || [];
   if (!items.length) {
-    emptyState(box, 'players', 'La lista está vacía',
+    emptyState(box, 'players', t('players.empty'),
       tab === 'ops' ? 'Añade tu propio nombre para poder usar comandos en el juego.'
                     : 'Añade jugadores con el campo de arriba.');
     return;
@@ -538,13 +589,13 @@ function renderPlayers() {
     const main = el('div', 'row-main');
     main.append(el('span', 'row-title', label));
     if (entry.reason) main.append(el('span', 'row-sub', entry.reason));
-    else if (entry.level) main.append(el('span', 'row-sub', `Nivel ${entry.level}`));
+    else if (entry.level) main.append(el('span', 'row-sub', t('players.level', { n: entry.level })));
 
     const del = el('button', 'btn btn-quiet btn-sm',
-      tab === 'bans' || tab === 'ipBans' ? 'Readmitir' : 'Quitar');
+      tab === 'bans' || tab === 'ipBans' ? t('players.unban') : t('players.remove'));
     del.addEventListener('click', async () => {
       const r = await api.players.mutate(tab, 'remove', label);
-      if (r.ok) { toast(`${label} eliminado de la lista.`); setTimeout(refreshPlayers, 400); }
+      if (r.ok) { toast(t('players.removed', { name: label })); setTimeout(refreshPlayers, 400); }
       else toast(r.error, 'error');
     });
 
@@ -564,7 +615,7 @@ async function addPlayer() {
   $('plAdd').disabled = false;
   if (r.ok) {
     input.value = '';
-    toast(`${value} añadido.`);
+    toast(t('players.added', { name: value }));
     setTimeout(refreshPlayers, 500);
   } else toast(r.error, 'error');
 }
@@ -574,14 +625,14 @@ $('plInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addPlay
 /* -------------------------------- Backups --------------------------------- */
 
 async function refreshBackups() {
-  if (!S.settings.serverPath) return;
+  if (!S.server?.serverPath) return;
   const box = $('backupList');
-  const list = await api.backups.list(S.settings.serverPath);
+  const list = await api.backups.list(S.server?.serverPath);
 
   if (!list.length) {
-    emptyState(box, 'backup', 'Todavía no hay copias',
+    emptyState(box, 'backup', t('backups.empty'),
       'Crea una antes de instalar mods nuevos o de tocar el mundo.',
-      { label: 'Crear la primera copia', onClick: () => $('btnBackupNow').click() });
+      { label: t('backups.emptyCta'), onClick: () => $('btnBackupNow').click() });
     return;
   }
 
@@ -592,24 +643,22 @@ async function refreshBackups() {
     main.append(el('span', 'row-title', fmtDate(b.created)));
     main.append(el('span', 'row-sub', `${fmtSize(b.size)} · ${b.file}`));
 
-    const restore = el('button', 'btn btn-quiet btn-sm', 'Restaurar');
+    const restore = el('button', 'btn btn-quiet btn-sm', t('backups.restore'));
     restore.addEventListener('click', async () => {
-      if (!await confirmAsk('Restaurar esta copia',
-        'Tu mundo actual se guardará aparte antes de sustituirlo. El servidor debe estar apagado.',
-        'Restaurar')) return;
-      taskStart('Restaurando la copia');
+      if (!await confirmAsk(t('backups.restoreTitle'), t('backups.restoreText'), t('backups.restore'))) return;
+      taskStart(t('backups.restoring'));
       const r = await api.backups.restore(b.file);
       taskEnd();
-      if (r.ok) toast('Copia restaurada.');
+      if (r.ok) toast(t('backups.restored'));
       else toast(r.error, 'error');
       refreshBackups();
     });
 
     const del = el('button', 'btn btn-quiet btn-sm btn-icon');
-    del.title = 'Borrar';
+    del.title = t('common.delete');
     del.append(icon('trash'));
     del.addEventListener('click', async () => {
-      if (!await confirmAsk('Borrar copia', 'Esta copia se eliminará definitivamente.', 'Borrar')) return;
+      if (!await confirmAsk(t('backups.deleteTitle'), t('backups.deleteText'), t('common.delete'))) return;
       await api.backups.remove(b.file);
       refreshBackups();
     });
@@ -622,10 +671,10 @@ async function refreshBackups() {
 }
 
 $('btnBackupNow').addEventListener('click', async () => {
-  taskStart('Creando copia de seguridad');
+  taskStart(t('backups.creating'));
   const r = await api.backups.create('manual');
   taskEnd();
-  if (r.ok) toast(`Copia creada (${fmtSize(r.size)}).`);
+  if (r.ok) toast(t('backups.created', { size: fmtSize(r.size) }));
   else toast(r.error, 'error');
   refreshBackups();
 });
@@ -639,13 +688,12 @@ wireTabs('worldTabs', (tab) => {
 });
 
 async function refreshWorlds() {
-  if (!S.settings.serverPath) return;
+  if (!S.server?.serverPath) return;
   const box = $('worldList');
   const list = await api.worlds.list();
 
   if (!list.length) {
-    emptyState(box, 'world', 'Aún no hay ningún mundo',
-      'Se creará automáticamente la primera vez que enciendas el servidor.');
+    emptyState(box, 'world', t('world.empty'), t('world.emptyHint'));
     return;
   }
 
@@ -661,40 +709,38 @@ async function refreshWorlds() {
     main.append(el('span', 'row-sub', bits.join(' · ')));
 
     const actions = el('div', 'row-actions');
-    if (w.active) actions.append(el('span', 'badge-mini ok', 'Activo'));
+    if (w.active) actions.append(el('span', 'badge-mini ok', t('world.active')));
     else {
-      const use = el('button', 'btn btn-quiet btn-sm', 'Usar');
+      const use = el('button', 'btn btn-quiet btn-sm', t('world.use'));
       use.addEventListener('click', async () => {
         const r = await api.worlds.activate(w.name);
-        if (r.ok) { toast(`"${w.name}" será el mundo activo.`); refreshWorlds(); }
+        if (r.ok) { toast(t('world.activated', { name: w.name })); refreshWorlds(); }
         else toast(r.error, 'error');
       });
       actions.append(use);
     }
 
     const exp = el('button', 'btn btn-quiet btn-sm btn-icon');
-    exp.title = 'Exportar a .zip';
+    exp.title = t('world.export');
     exp.append(icon('download'));
     exp.addEventListener('click', async () => {
       const dest = await api.dialog.saveZip(`${w.name}.zip`);
       if (!dest) return;
-      taskStart('Exportando el mundo');
+      taskStart(t('world.export'));
       const r = await api.worlds.export(w.name, dest);
       taskEnd();
-      toast(r.ok ? 'Mundo exportado.' : r.error, r.ok ? 'ok' : 'error');
+      toast(r.ok ? t('world.exported') : r.error, r.ok ? 'ok' : 'error');
     });
     actions.append(exp);
 
     if (!w.active) {
       const del = el('button', 'btn btn-quiet btn-sm btn-icon');
-      del.title = 'Borrar';
+      del.title = t('common.delete');
       del.append(icon('trash'));
       del.addEventListener('click', async () => {
-        if (!await confirmAsk('Borrar mundo',
-          `"${w.name}" se moverá a una carpeta de papelera dentro del servidor, por si te arrepientes.`,
-          'Borrar')) return;
+        if (!await confirmAsk(t('world.deleteTitle'), t('world.deleteText', { name: w.name }), t('common.delete'))) return;
         const r = await api.worlds.remove(w.name);
-        if (r.ok) { toast('Mundo apartado.'); refreshWorlds(); }
+        if (r.ok) { toast(t('world.movedAside')); refreshWorlds(); }
         else toast(r.error, 'error');
       });
       actions.append(del);
@@ -710,7 +756,7 @@ $('btnImportWorld').addEventListener('click', async () => {
   if (!zip) return;
   const base = zip.split(/[\\/]/).pop().replace(/\.zip$/i, '');
   const r = await api.worlds.import(zip, base);
-  if (r.ok) { toast(`Mundo "${r.name}" importado.`); refreshWorlds(); }
+  if (r.ok) { toast(t('world.imported', { name: r.name })); refreshWorlds(); }
   else toast(r.error, 'error');
 });
 
@@ -718,7 +764,7 @@ $('btnImportWorld').addEventListener('click', async () => {
 
 function renderGamerules() {
   const box = $('rulesGroups');
-  $('rulesNotice').hidden = S.server.status === 'running';
+  $('rulesNotice').hidden = S.state.status === 'running';
   if (box.dataset.built) return;
   box.dataset.built = '1';
   box.innerHTML = '';
@@ -794,8 +840,7 @@ async function refreshDatapacks() {
   const box = $('dpList');
   const list = await api.datapacks.list();
   if (!list.length) {
-    emptyState(box, 'world', 'Sin datapacks',
-      'Los datapacks añaden recetas, estructuras o mecánicas sin necesidad de mods.');
+    emptyState(box, 'world', t('world.noDatapacks'), t('world.noDatapacksHint'));
     return;
   }
   box.innerHTML = '';
@@ -803,11 +848,11 @@ async function refreshDatapacks() {
     const row = el('div', 'row');
     const main = el('div', 'row-main');
     main.append(el('span', 'row-title', d.name));
-    main.append(el('span', 'row-sub', d.isFolder ? 'Carpeta' : fmtSize(d.size)));
+    main.append(el('span', 'row-sub', d.isFolder ? t('common.folder') : fmtSize(d.size)));
     const del = el('button', 'btn btn-quiet btn-sm btn-icon');
     del.append(icon('trash'));
     del.addEventListener('click', async () => {
-      if (!await confirmAsk('Borrar datapack', `Se eliminará "${d.name}".`, 'Borrar')) return;
+      if (!await confirmAsk(t('world.datapackDeleteTitle'), t('world.datapackDeleteText', { name: d.name }), t('common.delete'))) return;
       await api.datapacks.remove(d.name);
       refreshDatapacks();
     });
@@ -820,7 +865,7 @@ async function refreshDatapacks() {
 
 wireDrop($('dpDrop'), ['.zip'], async (paths) => {
   const r = await api.datapacks.add(paths);
-  if (r.ok) { toast(`${r.added} datapack(s) añadidos. Reinicia para aplicarlos.`); refreshDatapacks(); }
+  if (r.ok) { toast(t('world.datapacksAdded', { n: r.added })); refreshDatapacks(); }
 });
 
 /* -------------------------------- Settings -------------------------------- */
@@ -831,15 +876,14 @@ $('btnPickFolder').addEventListener('click', async () => {
   const folder = await api.dialog.pickFolder();
   if (!folder) return;
   $('inpPath').value = folder;
-  S.settings = await api.settings.set({ serverPath: folder });
-  await refreshInstallState();
-  await loadProps();
+  S.server = await api.servers.update(S.server.id, { serverPath: folder });
+  await reloadActive();
 });
 
 async function loadPlatformVersions() {
   const platformId = $('selPlatform').value;
   const sel = $('selVersion');
-  sel.innerHTML = '<option>Cargando…</option>';
+  sel.innerHTML = `<option>${t('common.loading')}</option>`;
   sel.disabled = true;
 
   const platform = S.meta.platforms.find((p) => p.id === platformId);
@@ -850,8 +894,8 @@ async function loadPlatformVersions() {
     fillVersions(sel, versions);
     sel.disabled = false;
   } catch (err) {
-    sel.innerHTML = '<option>Sin conexión</option>';
-    toast('No se pudo cargar la lista de versiones.', 'error');
+    sel.innerHTML = `<option>${t('common.offline')}</option>`;
+    toast(t('common.versionsFailed'), 'error');
   }
 }
 
@@ -859,7 +903,7 @@ async function loadPlatformVersions() {
 function fillVersions(sel, versions) {
   sel.innerHTML = '';
   if (!versions.length) {
-    sel.innerHTML = '<option>Sin versiones disponibles</option>';
+    sel.innerHTML = `<option>${t('common.noVersions')}</option>`;
     return;
   }
 
@@ -888,20 +932,26 @@ function fillVersions(sel, versions) {
 
 $('selPlatform').addEventListener('change', loadPlatformVersions);
 
+$('inpServerName').addEventListener('change', async (e) => {
+  const name = e.target.value.trim();
+  if (!name || !S.server) return;
+  S.server = await api.servers.update(S.server.id, { name });
+  renderServer();
+});
+
 $('btnInstall').addEventListener('click', async () => {
   const serverPath = $('inpPath').value.trim();
-  if (!serverPath) return toast('Elige primero una carpeta.', 'warn');
+  if (!serverPath) return toast(t('settings.needFolder'), 'warn');
 
   let choice;
   try { choice = JSON.parse($('selVersion').value); }
-  catch (_) { return toast('Elige una versión.', 'warn'); }
+  catch (_) { return toast(t('settings.needVersion'), 'warn'); }
 
-  if (S.info.installed && !await confirmAsk('Reinstalar el servidor',
-    'Se descargarán de nuevo los archivos del servidor. Tu mundo y tus mods no se tocan.',
-    'Reinstalar')) return;
+  if (S.info.installed && !await confirmAsk(t('settings.reinstallTitle'), t('settings.reinstallText'), t('settings.install'))) return;
 
-  taskStart('Instalando el servidor');
+  taskStart(t('wizard.installing'));
   const r = await api.installer.install({
+    serverId: S.server?.id,
     serverPath,
     platformId: $('selPlatform').value,
     minecraft: choice.minecraft,
@@ -910,10 +960,8 @@ $('btnInstall').addEventListener('click', async () => {
   taskEnd();
 
   if (r.ok === false) { toast(r.error, 'error'); return; }
-  toast('Servidor instalado.');
-  S.settings = await api.settings.get();
-  await refreshInstallState();
-  await loadProps();
+  toast(t('settings.installed'));
+  await reloadActive();
 });
 
 /* RAM: slider and number field mirror each other; the cap is the real RAM. */
@@ -924,28 +972,29 @@ function setRam(value) {
   $('ramNumber').value = v;
   const warn = v > total - 2;
   $('ramHint').textContent = warn
-    ? `Tu equipo tiene ${total} GB. Dejar menos de 2 GB libres puede ralentizar Windows.`
-    : `Tu equipo tiene ${total} GB. Con muchos mods, 6-8 GB va sobrado.`;
+    ? t('settings.memoryWarn', { total })
+    : t('settings.memoryHint', { total });
   $('ramHint').style.color = warn ? 'var(--warn)' : '';
   return v;
 }
 
 $('ramRange').addEventListener('input', (e) => setRam(+e.target.value));
 $('ramRange').addEventListener('change', async (e) => {
-  S.settings = await api.settings.set({ ramGb: setRam(+e.target.value) });
+  S.server = await api.servers.update(S.server.id, { ramGb: setRam(+e.target.value) });
 });
 $('ramNumber').addEventListener('input', (e) => {
   const v = +e.target.value;
   if (v >= 1) $('ramRange').value = Math.min(v, S.meta.totalRamGb || 8);
 });
 $('ramNumber').addEventListener('change', async (e) => {
-  S.settings = await api.settings.set({ ramGb: setRam(+e.target.value) });
+  S.server = await api.servers.update(S.server.id, { ramGb: setRam(+e.target.value) });
 });
 
 /* Toggles */
 const bindToggle = (id, key) => {
   $(id).addEventListener('change', async (e) => {
-    S.settings = await api.settings.set({ [key]: e.target.checked });
+    if (!S.server) return;
+    S.server = await api.servers.update(S.server.id, { [key]: e.target.checked });
   });
 };
 bindToggle('cfgAutoRestart', 'autoRestartOnCrash');
@@ -953,20 +1002,22 @@ bindToggle('cfgAutoTunnel', 'autoTunnel');
 bindToggle('cfgBackupOnStop', 'backupOnStop');
 
 $('cfgBackupsKeep').addEventListener('change', async (e) => {
-  S.settings = await api.settings.set({ backupsKeep: Math.max(1, +e.target.value || 10) });
+  S.server = await api.servers.update(S.server.id, { backupsKeep: Math.max(1, +e.target.value || 10) });
 });
 
 async function saveSchedule() {
+  if (!S.server) return;
   const schedule = {
     restart: { enabled: $('cfgRestartOn').checked, time: $('cfgRestartTime').value || '05:00' },
     backup: { enabled: $('cfgBackupAuto').checked, everyHours: Math.max(1, +$('cfgBackupHours').value || 6) },
   };
-  const res = await api.schedule.set(schedule);
-  S.settings = await api.settings.get();
-  if (res.nextRestart) {
-    $('nextRestartHint').textContent = `Próximo reinicio: ${fmtDate(res.nextRestart)}`;
-  } else $('nextRestartHint').textContent = '';
+  S.server = await api.servers.update(S.server.id, { schedule });
+  const info = await api.schedule.get();
+  $('nextRestartHint').textContent = info.nextRestart
+    ? t('settings.nextRestart', { when: fmtDate(info.nextRestart) })
+    : '';
 }
+
 ['cfgRestartOn', 'cfgRestartTime', 'cfgBackupAuto', 'cfgBackupHours']
   .forEach((id) => $(id).addEventListener('change', saveSchedule));
 
@@ -986,9 +1037,9 @@ $('btnEyeToken').addEventListener('click', () => {
 
 $('btnSaveToken').addEventListener('click', async () => {
   const token = $('inpToken').value.trim();
-  if (!token) return toast('Pega tu authtoken primero.', 'warn');
+  if (!token) return toast(t('access.tokenMissing'), 'warn');
 
-  taskStart('Preparando el túnel');
+  taskStart(t('access.preparing'));
   const ensured = await api.ngrok.ensure();
   if (ensured.ok === false) { taskEnd(); return toast(ensured.error, 'error'); }
   const r = await api.ngrok.setToken(token);
@@ -999,18 +1050,18 @@ $('btnSaveToken').addEventListener('click', async () => {
     $('tokenHint').style.color = 'var(--danger)';
     return toast(r.error, 'error');
   }
-  S.settings = await api.settings.set({ ngrokToken: token });
-  $('tokenHint').textContent = 'Authtoken guardado y verificado.';
+  S.server = await api.servers.active();
+  $('tokenHint').textContent = t('access.tokenVerified');
   $('tokenHint').style.color = 'var(--accent)';
-  toast('Todo listo para abrir el túnel.');
+  toast(t('access.tunnelReady'));
   renderTunnel();
 });
 
 /* ----------------------------- server.properties -------------------------- */
 
 async function loadProps() {
-  if (!S.settings.serverPath) return;
-  S.props = await api.props.read(S.settings.serverPath);
+  if (!S.server?.serverPath) return;
+  S.props = await api.props.read(S.server?.serverPath);
   S.propsDirty = {};
   $('propGroups').dataset.built = '';
   if (document.querySelector('#tab-opciones.active')) renderProps();
@@ -1038,54 +1089,327 @@ function renderProps() {
 }
 
 $('btnSaveProps').addEventListener('click', async () => {
-  if (!S.settings.serverPath) return toast('Elige primero una carpeta de servidor.', 'warn');
-  if (!Object.keys(S.propsDirty).length) return toast('No hay cambios que guardar.');
+  if (!S.server?.serverPath) return toast(t('settings.needFolder'), 'warn');
+  if (!Object.keys(S.propsDirty).length) return toast(t('common.noChanges'));
 
-  const r = await api.props.write(S.settings.serverPath, S.propsDirty);
+  const r = await api.props.write(S.server?.serverPath, S.propsDirty);
   if (r.ok === false) return toast(r.error, 'error');
 
   Object.assign(S.props, S.propsDirty);
   S.propsDirty = {};
-  toast(S.server.status === 'running'
-    ? 'Guardado. Reinicia el servidor para aplicarlo.'
-    : 'Opciones guardadas.');
+  toast(S.state.status === 'running' ? t('common.savedRestart') : t('common.saved'));
+});
+
+
+/* ------------------------------ Server picker ----------------------------- */
+
+function promptText(title, value = '') {
+  return new Promise((resolve) => {
+    $('pmTitle').textContent = title;
+    const input = $('pmInput');
+    input.value = value;
+    $('promptScrim').hidden = false;
+    input.focus();
+    input.select();
+
+    const done = (v) => {
+      $('promptScrim').hidden = true;
+      $('pmYes').removeEventListener('click', yes);
+      $('pmNo').removeEventListener('click', no);
+      input.removeEventListener('keydown', key);
+      resolve(v);
+    };
+    const yes = () => done(input.value.trim() || null);
+    const no = () => done(null);
+    const key = (e) => {
+      if (e.key === 'Enter') yes();
+      if (e.key === 'Escape') no();
+    };
+    $('pmYes').addEventListener('click', yes);
+    $('pmNo').addEventListener('click', no);
+    input.addEventListener('keydown', key);
+  });
+}
+
+async function openPicker() {
+  S.servers = await api.servers.list();
+  const box = $('pkList');
+  box.innerHTML = '';
+
+  if (!S.servers.length) {
+    emptyState(box, 'panel', t('servers.empty'), t('servers.emptyHint'));
+  }
+
+  for (const entry of S.servers) {
+    const isCurrent = entry.id === S.settings.activeServerId;
+    const row = el('div', `row pk-row ${isCurrent ? 'current' : ''}`);
+
+    const main = el('div', 'row-main');
+    main.append(el('span', 'row-title', entry.name));
+    main.append(el('span', 'row-sub', entry.installed
+      ? `${entry.minecraft || ''} · ${entry.serverPath}`
+      : t('servers.notInstalled')));
+
+    const actions = el('div', 'row-actions');
+
+    if (!isCurrent) {
+      const open = el('button', 'btn btn-quiet btn-sm', t('servers.open'));
+      open.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const r = await api.servers.select(entry.id);
+        if (!r.ok) return toast(t('servers.deleteText'), 'warn');
+        $('pickerScrim').hidden = true;
+        await reloadActive();
+      });
+      actions.append(open);
+    } else {
+      actions.append(el('span', 'badge-mini ok', t('world.active')));
+    }
+
+    const ren = el('button', 'btn btn-quiet btn-sm', t('servers.rename'));
+    ren.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const name = await promptText(t('servers.renameTitle'), entry.name);
+      if (!name) return;
+      await api.servers.update(entry.id, { name });
+      if (isCurrent) await reloadActive();
+      openPicker();
+    });
+
+    const del = el('button', 'btn btn-quiet btn-sm btn-icon');
+    del.append(icon('trash'));
+    del.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!await confirmAsk(t('servers.deleteTitle'), t('servers.deleteText'), t('common.delete'))) return;
+      const r = await api.servers.remove(entry.id);
+      if (r.ok === false) return toast(t('servers.deleteText'), 'warn');
+      await reloadActive();
+      openPicker();
+    });
+
+    actions.append(ren, del);
+    row.append(main, actions);
+    box.append(row);
+  }
+
+  $('pickerScrim').hidden = false;
+}
+
+$('serverSwitch').addEventListener('click', openPicker);
+$('pkClose').addEventListener('click', () => { $('pickerScrim').hidden = true; });
+$('pkNew').addEventListener('click', () => {
+  $('pickerScrim').hidden = true;
+  wizard.open();
+});
+
+/* ------------------------------ Access modes ------------------------------ */
+
+function renderExposure() {
+  const mode = S.server?.exposure || 'tunnel';
+  document.querySelectorAll('#exposureModes .mode').forEach((b) =>
+    b.classList.toggle('sel', b.dataset.mode === mode));
+
+  $('paneTunnel').hidden = mode !== 'tunnel';
+  $('paneForward').hidden = mode !== 'portforward';
+  $('paneLan').hidden = mode !== 'lan';
+
+  // Auto-tunnel only means anything when the tunnel is the chosen route.
+  const autoRow = $('cfgAutoTunnel')?.closest('.switch-row');
+  if (autoRow) autoRow.hidden = mode !== 'tunnel';
+
+  if (mode === 'portforward' || mode === 'lan') refreshNetwork();
+  renderTunnel();
+}
+
+async function refreshNetwork() {
+  S.net = await api.network.summary();
+  const port = S.server?.port || 25565;
+
+  $('fwStep1Hint').textContent = t('access.forwardStep1Hint', { ip: S.net.localIp || '—' });
+  $('fwStep2Hint').textContent = t('access.forwardStep2Hint', { port, ip: S.net.localIp || '—' });
+  $('routerUrl').textContent = S.net.gateway || '192.168.1.1';
+  $('fwPublicAddr').textContent = S.net.publicIp ? `${S.net.publicIp}:${port}` : '—';
+  $('lanAddr').textContent = S.net.localIp ? `${S.net.localIp}:${port}` : '—';
+  $('cgnatNotice').hidden = !S.net.cgnat;
+  $('inpPort').value = port;
+
+  renderTunnel();
+}
+
+$('exposureModes').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.mode');
+  if (!btn || !S.server) return;
+  S.server = await api.servers.update(S.server.id, { exposure: btn.dataset.mode });
+  renderExposure();
+});
+
+$('btnOpenRouter').addEventListener('click', () => {
+  if (S.net.gateway) api.shell.openExternal(`http://${S.net.gateway}`);
+});
+
+$('btnNetRefresh').addEventListener('click', refreshNetwork);
+
+$('btnCopyForward').addEventListener('click', async () => {
+  const v = $('fwPublicAddr').textContent;
+  if (v && v !== '—') { await navigator.clipboard.writeText(v); toast(t('common.copied')); }
+});
+
+$('btnCopyLan').addEventListener('click', async () => {
+  const v = $('lanAddr').textContent;
+  if (v && v !== '—') { await navigator.clipboard.writeText(v); toast(t('common.copied')); }
+});
+
+$('inpPort').addEventListener('change', async (e) => {
+  const port = Math.max(1024, Math.min(65535, +e.target.value || 25565));
+  e.target.value = port;
+  S.server = await api.servers.update(S.server.id, { port });
+  refreshNetwork();
+});
+
+$('btnFirewall').addEventListener('click', async () => {
+  const btn = $('btnFirewall');
+  btn.disabled = true;
+  const r = await api.network.firewall();
+  btn.disabled = false;
+  toast(r.ok ? t('access.firewallAdded') : t('access.firewallFailed'), r.ok ? 'ok' : 'error');
+});
+
+$('btnTestPort').addEventListener('click', async () => {
+  const btn = $('btnTestPort');
+  const hint = $('portHint');
+  const port = S.server?.port || 25565;
+
+  btn.disabled = true;
+  btn.textContent = t('access.forwardTesting');
+  hint.textContent = '';
+
+  const r = await api.network.testPort();
+
+  btn.disabled = false;
+  btn.textContent = t('access.forwardTest');
+
+  if (r.reason === 'not-listening') {
+    hint.textContent = t('access.forwardNeedsRunning');
+    hint.style.color = 'var(--warn)';
+    return;
+  }
+  if (!r.ok) {
+    hint.textContent = t('settings.updateFailed');
+    hint.style.color = 'var(--danger)';
+    return;
+  }
+  hint.textContent = r.open ? t('access.forwardOpen', { port }) : t('access.forwardClosed', { port });
+  hint.style.color = r.open ? 'var(--accent)' : 'var(--warn)';
+});
+
+/* -------------------------------- Language -------------------------------- */
+
+async function setLanguage(id) {
+  const res = await api.i18n.set(id);
+  S.lang = res.id;
+  S.strings = res.strings;
+  applyStrings();
+  redrawDynamic();
+}
+
+$('selLanguage').addEventListener('change', (e) => setLanguage(e.target.value));
+
+/** Views built in JavaScript need a nudge after a language change. */
+function redrawDynamic() {
+  renderServer();
+  renderExposure();
+  $('propGroups').dataset.built = '';
+  $('rulesGroups').dataset.built = '';
+  if (S.view === 'contenido') refreshMods();
+  if (S.view === 'jugadores') renderPlayers();
+  if (S.view === 'copias') refreshBackups();
+  if (S.view === 'mundo') refreshWorlds();
+  if (document.querySelector('#tab-opciones.active')) renderProps();
+}
+
+/* -------------------------------- Updates --------------------------------- */
+
+$('btnCheckUpdate').addEventListener('click', async () => {
+  const btn = $('btnCheckUpdate');
+  const hint = $('updateHint');
+
+  btn.disabled = true;
+  hint.textContent = t('settings.checking');
+  hint.style.color = '';
+
+  const r = await api.updates.check();
+  btn.disabled = false;
+
+  if (!r.ok) {
+    hint.textContent = t('settings.updateFailed');
+    hint.style.color = 'var(--danger)';
+    return;
+  }
+  if (r.upToDate) {
+    hint.textContent = t('settings.upToDate', { version: S.meta.version });
+    hint.style.color = 'var(--accent)';
+    return;
+  }
+
+  hint.innerHTML = '';
+  hint.append(el('span', null, `${t('settings.updateFound', { version: r.version })} `));
+  const link = el('button', 'btn btn-quiet btn-sm', t('settings.updateDownload'));
+  link.addEventListener('click', () => api.shell.openExternal(r.url));
+  hint.append(link);
+  hint.style.color = 'var(--warn)';
 });
 
 /* --------------------------------- Wizard --------------------------------- */
 
 const wizard = {
   step: 0,
-  data: { folder: '', platform: 'neoforge', version: null },
+  steps: ['name', 'folder', 'platform', 'version', 'access'],
+  data: {},
 
   open() {
     this.step = 0;
-    this.data = { folder: S.settings.serverPath || '', platform: 'neoforge', version: null };
+    this.data = { name: '', folder: '', platform: 'neoforge', version: null, exposure: 'tunnel' };
     $('wizard').hidden = false;
     this.render();
   },
+
   close() { $('wizard').hidden = true; },
 
   async render() {
-    const total = 3;
-    $('wzStep').textContent = `Paso ${this.step + 1} de ${total}`;
+    const total = this.steps.length;
+    const kind = this.steps[this.step];
+
+    $('wzStep').textContent = t('wizard.step', { n: this.step + 1, total });
     $('wzProgress').style.width = `${((this.step + 1) / total) * 100}%`;
     $('wzBack').style.visibility = this.step === 0 ? 'hidden' : 'visible';
-    $('wzNext').textContent = this.step === total - 1 ? 'Instalar' : 'Continuar';
+    $('wzNext').textContent = this.step === total - 1 ? t('wizard.install') : t('wizard.next');
 
     const content = $('wzContent');
     content.innerHTML = '';
 
-    if (this.step === 0) {
-      $('wzTitle').textContent = '¿Dónde guardamos el servidor?';
-      $('wzText').textContent =
-        'Elige una carpeta vacía. Ahí vivirán el mundo, los mods y las copias de seguridad.';
+    if (kind === 'name') {
+      $('wzTitle').textContent = t('wizard.nameTitle');
+      $('wzText').textContent = t('wizard.nameText');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = t('wizard.namePlaceholder');
+      input.value = this.data.name;
+      input.addEventListener('input', () => { this.data.name = input.value; });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.next(); });
+      content.append(input);
+      setTimeout(() => input.focus(), 60);
+    }
+
+    if (kind === 'folder') {
+      $('wzTitle').textContent = t('wizard.folderTitle');
+      $('wzText').textContent = t('wizard.folderText');
       const row = el('div', 'row-inline');
       const input = document.createElement('input');
       input.type = 'text';
       input.readOnly = true;
-      input.placeholder = 'Ninguna carpeta elegida';
+      input.placeholder = t('wizard.folderNone');
       input.value = this.data.folder;
-      const pick = el('button', 'btn btn-quiet', 'Elegir…');
+      const pick = el('button', 'btn btn-quiet', t('settings.choose'));
       pick.addEventListener('click', async () => {
         const f = await api.dialog.pickFolder();
         if (f) { this.data.folder = f; input.value = f; }
@@ -1094,17 +1418,17 @@ const wizard = {
       content.append(row);
     }
 
-    if (this.step === 1) {
-      $('wzTitle').textContent = '¿Qué tipo de servidor quieres?';
-      $('wzText').textContent = 'Puedes cambiarlo más adelante desde Ajustes.';
+    if (kind === 'platform') {
+      $('wzTitle').textContent = t('wizard.platformTitle');
+      $('wzText').textContent = t('wizard.platformText');
       const list = el('div', 'wz-list');
-      for (const p of S.meta.platforms) {
-        const btn = el('button', `pick ${p.id === this.data.platform ? 'sel' : ''}`);
+      for (const pf of S.meta.platforms) {
+        const btn = el('button', `pick ${pf.id === this.data.platform ? 'sel' : ''}`);
         const main = el('div', 'pick-main');
-        main.append(el('b', null, p.name), el('span', null, p.blurb));
+        main.append(el('b', null, pf.name), el('span', null, pf.blurb));
         btn.append(main, icon('check'));
         btn.addEventListener('click', () => {
-          this.data.platform = p.id;
+          this.data.platform = pf.id;
           this.data.version = null;
           list.querySelectorAll('.pick').forEach((n) => n.classList.toggle('sel', n === btn));
         });
@@ -1113,33 +1437,69 @@ const wizard = {
       content.append(list);
     }
 
-    if (this.step === 2) {
-      $('wzTitle').textContent = '¿Qué versión de Minecraft?';
-      $('wzText').textContent = 'Todos los que entren deben usar exactamente esta versión.';
+    if (kind === 'version') {
+      $('wzTitle').textContent = t('wizard.versionTitle');
+      $('wzText').textContent = t('wizard.versionText');
       const sel = document.createElement('select');
-      sel.innerHTML = '<option>Cargando…</option>';
+      sel.innerHTML = `<option>${t('common.loading')}</option>`;
       content.append(sel);
-
       try {
         const versions = await api.installer.versions(this.data.platform);
         fillVersions(sel, versions);
         this.data.version = JSON.parse(sel.value);
         sel.addEventListener('change', () => { this.data.version = JSON.parse(sel.value); });
       } catch (_) {
-        sel.innerHTML = '<option>Sin conexión</option>';
+        sel.innerHTML = `<option>${t('common.offline')}</option>`;
       }
+    }
+
+    if (kind === 'access') {
+      $('wzTitle').textContent = t('wizard.accessTitle');
+      $('wzText').textContent = t('wizard.accessText');
+      const list = el('div', 'wz-list');
+      const modes = [
+        ['tunnel', 'access.tunnel', 'access.tunnelBlurb'],
+        ['portforward', 'access.forward', 'access.forwardBlurb'],
+        ['lan', 'access.lan', 'access.lanBlurb'],
+      ];
+      for (const [id, title, blurb] of modes) {
+        const btn = el('button', `pick ${id === this.data.exposure ? 'sel' : ''}`);
+        const main = el('div', 'pick-main');
+        main.append(el('b', null, t(title)), el('span', null, t(blurb)));
+        btn.append(main, icon('check'));
+        btn.addEventListener('click', () => {
+          this.data.exposure = id;
+          list.querySelectorAll('.pick').forEach((n) => n.classList.toggle('sel', n === btn));
+        });
+        list.append(btn);
+      }
+      content.append(list);
     }
   },
 
   async next() {
-    if (this.step === 0 && !this.data.folder) return toast('Elige una carpeta para continuar.', 'warn');
+    const kind = this.steps[this.step];
+    if (kind === 'name' && !this.data.name.trim()) return toast(t('wizard.needName'), 'warn');
+    if (kind === 'folder' && !this.data.folder) return toast(t('wizard.needFolder'), 'warn');
 
-    if (this.step < 2) { this.step++; return this.render(); }
-    if (!this.data.version) return toast('Elige una versión.', 'warn');
+    if (this.step < this.steps.length - 1) {
+      this.step++;
+      return this.render();
+    }
+    if (!this.data.version) return toast(t('wizard.needVersion'), 'warn');
 
     this.close();
-    taskStart('Instalando el servidor');
+
+    const entry = await api.servers.add({
+      name: this.data.name.trim(),
+      serverPath: this.data.folder,
+      platform: this.data.platform,
+      exposure: this.data.exposure,
+    });
+
+    taskStart(t('wizard.installing'));
     const r = await api.installer.install({
+      serverId: entry.id,
       serverPath: this.data.folder,
       platformId: this.data.platform,
       minecraft: this.data.version.minecraft,
@@ -1149,10 +1509,9 @@ const wizard = {
 
     if (r.ok === false) return toast(r.error, 'error');
 
-    S.settings = await api.settings.get();
-    await refreshInstallState();
-    await loadProps();
-    toast('Servidor listo.');
+    await reloadActive();
+    toast(t('wizard.ready'));
+
     if (!S.settings.onboardingDone) setTimeout(() => tour.start(), 450);
   },
 };
@@ -1165,36 +1524,32 @@ $('wzCancel').addEventListener('click', () => wizard.close());
 /* ---------------------------------- Tour ---------------------------------- */
 
 const tour = {
-  steps: [
-    {
-      target: '[data-tour="power"]',
-      title: 'Enciende tu servidor',
-      text: 'Desde aquí arranca y se detiene. La primera vez tardará un poco en generar el mundo.',
-      view: 'panel',
-    },
-    {
-      target: '[data-tour="address"]',
-      title: 'Comparte esta dirección',
-      text: 'Cuando el servidor esté en marcha aparecerá aquí la dirección que darás a tus amigos. Tú entras con «localhost».',
-      view: 'panel',
-    },
-    {
-      target: '[data-tour="ngrok"]',
-      title: 'Configura el acceso desde fuera',
-      text: 'Para que entren desde otra casa necesitas un authtoken de ngrok. Es gratis y son dos minutos.',
-      view: 'ajustes',
-      tab: { container: 'settingsTabs', name: 'acceso' },
-    },
-    {
-      target: '.nav-item[data-view="copias"]',
-      title: 'Haz copias de seguridad',
-      text: 'Antes de instalar mods o de tocar el mundo, guarda una copia. Se restaura en un clic.',
-      view: 'panel',
-    },
-  ],
   i: 0,
+  steps: [],
+
+  /** The access step depends on how this server was set up. */
+  build() {
+    const mode = S.server?.exposure || 'tunnel';
+    const accessStep = mode === 'portforward'
+      ? { target: '[data-tour="access"]', title: 'tour.forwardTitle', text: 'tour.forwardText',
+          view: 'ajustes', tab: { container: 'settingsTabs', name: 'acceso' } }
+      : mode === 'lan'
+      ? { target: '[data-tour="access"]', title: 'tour.lanTitle', text: 'tour.lanText',
+          view: 'ajustes', tab: { container: 'settingsTabs', name: 'acceso' } }
+      : { target: '[data-tour="ngrok"]', title: 'tour.tunnelTitle', text: 'tour.tunnelText',
+          view: 'ajustes', tab: { container: 'settingsTabs', name: 'acceso' } };
+
+    this.steps = [
+      { target: '[data-tour="power"]', title: 'tour.powerTitle', text: 'tour.powerText', view: 'panel' },
+      { target: '[data-tour="address"]', title: 'tour.addressTitle', text: 'tour.addressText', view: 'panel' },
+      accessStep,
+      { target: '.nav-item[data-view="copias"]', title: 'tour.backupTitle', text: 'tour.backupText', view: 'panel' },
+      { target: '[data-tour="servers"]', title: 'tour.serversTitle', text: 'tour.serversText', view: 'panel' },
+    ];
+  },
 
   async start() {
+    this.build();
     this.i = 0;
     $('tour').hidden = false;
     await this.show();
@@ -1205,9 +1560,7 @@ const tour = {
 
     if (step.view && S.view !== step.view) go(step.view);
     if (step.tab) {
-      const box = $(step.tab.container);
-      const tab = box.querySelector(`.tab[data-tab="${step.tab.name}"]`);
-      tab?.click();
+      $(step.tab.container).querySelector(`.tab[data-tab="${step.tab.name}"]`)?.click();
     }
     await new Promise((r) => setTimeout(r, 180));
 
@@ -1229,10 +1582,10 @@ const tour = {
       n.setAttribute('height', box.h);
     }
 
-    $('tourStep').textContent = `Paso ${this.i + 1} de ${this.steps.length}`;
-    $('tourTitle').textContent = step.title;
-    $('tourText').textContent = step.text;
-    $('tourNext').textContent = this.i === this.steps.length - 1 ? 'Entendido' : 'Siguiente';
+    $('tourStep').textContent = t('wizard.step', { n: this.i + 1, total: this.steps.length });
+    $('tourTitle').textContent = t(step.title);
+    $('tourText').textContent = t(step.text);
+    $('tourNext').textContent = this.i === this.steps.length - 1 ? t('tour.done') : t('tour.next');
 
     const dots = $('tourDots');
     dots.innerHTML = '';
@@ -1258,11 +1611,10 @@ const tour = {
       { x: box.x, y: box.y - popH - gap, fits: box.y - popH - gap >= margin },
     ];
 
-    const spot = spots.find((s) => s.fits) || spots[2];
-    const left = Math.min(Math.max(margin, spot.x), vw - popW - margin);
-    const top = Math.min(Math.max(margin, spot.y), vh - popH - margin);
-
-    pop.style.transform = `translate(${left}px, ${top}px)`;
+    const spot = spots.find((sp) => sp.fits) || spots[2];
+    pop.style.transform = `translate(${
+      Math.min(Math.max(margin, spot.x), vw - popW - margin)}px, ${
+      Math.min(Math.max(margin, spot.y), vh - popH - margin)}px)`;
   },
 
   next() {
@@ -1280,71 +1632,95 @@ const tour = {
 $('tourNext').addEventListener('click', () => tour.next());
 $('tourSkip').addEventListener('click', () => tour.finish());
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (!$('tour').hidden) tour.finish();
-    else if (!$('wizard').hidden) wizard.close();
-  }
+  if (e.key !== 'Escape') return;
+  if (!$('tour').hidden) tour.finish();
+  else if (!$('wizard').hidden) wizard.close();
+  else if (!$('pickerScrim').hidden) $('pickerScrim').hidden = true;
 });
 
 /* ---------------------------------- Init ---------------------------------- */
 
-async function refreshInstallState() {
-  S.info = S.settings.serverPath
-    ? await api.installer.status(S.settings.serverPath)
-    : { installed: false };
+/** Reloads everything that depends on which server is active. */
+async function reloadActive() {
+  S.settings = await api.settings.get();
+  S.server = await api.servers.active();
+  S.info = S.server ? await api.installer.status(S.server.serverPath) : { installed: false };
 
-  const setup = !S.info.installed;
-  $('panelSetup').hidden = !setup;
-  $('panelBody').hidden = setup;
-  $('pathHint').textContent = S.info.installed
-    ? `Instalado: ${S.info.minecraft || ''}${S.info.hasWorld ? ' · con mundo' : ''}`
-    : 'Aquí se guardan el mundo, los mods y las copias.';
+  const hasServer = !!S.server;
+  const installed = hasServer && S.info.installed;
+
+  $('panelSetup').hidden = installed;
+  $('panelBody').hidden = !installed;
+  $('pathHint').textContent = installed
+    ? t(S.info.hasWorld ? 'settings.folderWithWorld' : 'settings.folderInstalled',
+        { version: S.info.minecraft || '' })
+    : t('settings.folderHint');
+
+  if (hasServer) {
+    $('inpServerName').value = S.server.name;
+    $('inpPath').value = S.server.serverPath || '';
+    $('inpToken').value = S.server.ngrokToken || '';
+    $('cfgAutoTunnel').checked = S.server.autoTunnel !== false;
+    $('cfgAutoRestart').checked = S.server.autoRestartOnCrash !== false;
+    $('cfgBackupOnStop').checked = S.server.backupOnStop !== false;
+    $('cfgBackupsKeep').value = S.server.backupsKeep || 10;
+    $('cfgRestartOn').checked = !!S.server.schedule?.restart?.enabled;
+    $('cfgRestartTime').value = S.server.schedule?.restart?.time || '05:00';
+    $('cfgBackupAuto').checked = !!S.server.schedule?.backup?.enabled;
+    $('cfgBackupHours').value = S.server.schedule?.backup?.everyHours || 6;
+    $('selPlatform').value = S.server.platform || 'neoforge';
+    setRam(S.server.ramGb || 4);
+    $('tokenHint').textContent = S.server.ngrokToken ? t('access.tokenSaved') : '';
+    $('tokenHint').style.color = S.server.ngrokToken ? 'var(--accent)' : '';
+  }
+
+  S.state = await api.server.state();
+  S.tunnel = await api.ngrok.state();
 
   renderServer();
+  renderExposure();
+  await loadProps();
 }
 
 async function init() {
   S.meta = await api.app.info();
   S.settings = await api.settings.get();
 
+  const lang = S.settings.language || S.meta.language || 'en';
+  const bundle = await api.i18n.bundle(lang);
+  S.lang = bundle.id;
+  S.strings = bundle.strings;
+  applyStrings();
+
+  const langSel = $('selLanguage');
+  langSel.innerHTML = '';
+  for (const l of bundle.languages) {
+    const opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = l.name;
+    langSel.append(opt);
+  }
+  langSel.value = S.lang;
+
+  $('updateHint').textContent = t('settings.version', { version: S.meta.version });
+
   const psel = $('selPlatform');
   psel.innerHTML = '';
-  for (const p of S.meta.platforms) {
+  for (const pf of S.meta.platforms) {
     const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = `${p.name}${p.kind === 'plugins' ? ' · plugins' : p.kind === 'mods' ? ' · mods' : ''}`;
+    opt.value = pf.id;
+    opt.textContent = pf.name;
     psel.append(opt);
-  }
-  psel.value = S.settings.platform || 'neoforge';
-
-  $('inpPath').value = S.settings.serverPath || '';
-  $('inpToken').value = S.settings.ngrokToken || '';
-  $('cfgAutoTunnel').checked = S.settings.autoTunnel !== false;
-  $('cfgAutoRestart').checked = S.settings.autoRestartOnCrash !== false;
-  $('cfgBackupOnStop').checked = S.settings.backupOnStop !== false;
-  $('cfgBackupsKeep').value = S.settings.backupsKeep || 10;
-  $('cfgRestartOn').checked = !!S.settings.schedule?.restart?.enabled;
-  $('cfgRestartTime').value = S.settings.schedule?.restart?.time || '05:00';
-  $('cfgBackupAuto').checked = !!S.settings.schedule?.backup?.enabled;
-  $('cfgBackupHours').value = S.settings.schedule?.backup?.everyHours || 6;
-  if (S.settings.ngrokToken) {
-    $('tokenHint').textContent = 'Authtoken guardado.';
-    $('tokenHint').style.color = 'var(--accent)';
   }
 
   $('ramRange').max = String(S.meta.totalRamGb || 8);
-  setRam(S.settings.ramGb || 4);
 
-  S.server = await api.server.state();
-  S.tunnel = await api.ngrok.state();
   for (const entry of await api.server.recentLog()) addLog(entry);
 
-  await refreshInstallState();
-  await loadProps();
-  renderTunnel();
+  await reloadActive();
   loadPlatformVersions();
 
-  if (!S.settings.serverPath) {
+  if (!S.server) {
     setTimeout(() => wizard.open(), 500);
   } else if (!S.settings.onboardingDone && S.info.installed) {
     setTimeout(() => tour.start(), 700);

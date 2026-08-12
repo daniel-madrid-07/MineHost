@@ -13,6 +13,9 @@ const backups = require('./backupManager');
 const worlds = require('./worldManager');
 const modrinth = require('./modrinth');
 const catalog = require('./catalog');
+const i18n = require('./i18n');
+const updater = require('./updater');
+const network = require('./network');
 
 let win = null;
 let server = null;
@@ -94,9 +97,10 @@ app.whenReady().then(() => {
     onStats: (s) => send('server:stats', s),
     onCrash: async ({ code, reason }) => {
       send('server:crash', { code, reason });
-      if (reason !== 'port' && reason !== 'eula' && Settings.get('autoRestartOnCrash')) {
+      const active = Settings.activeServer();
+      if (reason !== 'port' && reason !== 'eula' && active?.autoRestartOnCrash) {
         send('server:log', {
-          line: 'Reiniciando automáticamente en 5 segundos…', level: 'system', ts: Date.now(),
+          line: 'Restarting automatically in 5 seconds…', level: 'system', ts: Date.now(),
         });
         setTimeout(() => startServer().catch(() => {}), 5000);
       }
@@ -118,7 +122,7 @@ app.whenReady().then(() => {
     },
     runBackup: (label) => createBackup({ label }),
   });
-  scheduler.configure(Settings.get('schedule'));
+  scheduler.configure(Settings.activeServer()?.schedule || {});
 
   createWindow();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
@@ -142,22 +146,29 @@ app.on('before-quit', shutdown);
 /* ------------------------------- Helpers --------------------------------- */
 
 function currentServer() {
-  const s = Settings.getAll();
-  const info = Installer.inspectServer(s.serverPath);
-  return { settings: s, info };
+  const settings = Settings.activeServer();
+  if (!settings) return { settings: null, info: { installed: false } };
+  return { settings, info: Installer.inspectServer(settings.serverPath) };
+}
+
+/** Persists a patch onto the active server entry. */
+function patchActive(patch) {
+  const id = Settings.get('activeServerId');
+  return id ? Settings.updateServer(id, patch) : null;
 }
 
 async function startServer() {
   const { settings, info } = currentServer();
-  if (!info.installed) return { ok: false, error: 'No hay ningún servidor instalado en esa carpeta.' };
+  if (!settings) return { ok: false, error: 'NO_SERVER' };
+  if (!info.installed) return { ok: false, error: 'NOT_INSTALLED' };
 
   const javaMajor = Installer.requiredJava(info.minecraft || settings.minecraft || '1.21');
   let javaPath = settings.javaPath;
   if (!javaPath || !fs.existsSync(javaPath)) {
     const found = await Installer.detectJava(javaMajor);
     javaPath = found.best?.path;
-    if (!javaPath) return { ok: false, error: `Falta Java ${javaMajor}. Reinstala el servidor para descargarlo.` };
-    Settings.merge({ javaPath });
+    if (!javaPath) return { ok: false, error: `JAVA_MISSING:${javaMajor}` };
+    patchActive({ javaPath });
   }
 
   const platform = platforms.PLATFORMS[info.platform || settings.platform];
@@ -174,6 +185,7 @@ async function startServer() {
 
 async function createBackup({ label = '' } = {}) {
   const { settings, info } = currentServer();
+  if (!settings) return { ok: false, error: 'NO_SERVER' };
   const running = server.getState().status === 'running';
   return backups.create({
     serverPath: settings.serverPath,
@@ -198,10 +210,85 @@ const handle = (channel, fn) => ipcMain.handle(channel, async (_e, ...args) => {
 /* ------------------------------- Settings -------------------------------- */
 
 handle('settings:get', () => Settings.getAll());
+
 handle('settings:set', (patch) => {
   const next = Settings.merge(patch);
-  if (patch.schedule) scheduler.configure(patch.schedule);
   return next;
+});
+
+/* -------------------------------- Servers -------------------------------- */
+
+handle('servers:list', () => Settings.listServers().map((s) => {
+  const info = Installer.inspectServer(s.serverPath);
+  return { ...s, installed: info.installed, minecraft: info.minecraft || s.minecraft };
+}));
+
+handle('servers:active', () => {
+  const { settings, info } = currentServer();
+  return settings ? { ...settings, installed: info.installed } : null;
+});
+
+handle('servers:add', (patch) => Settings.addServer(patch));
+
+handle('servers:update', ({ id, patch }) => {
+  const next = Settings.updateServer(id, patch);
+  if (next && id === Settings.get('activeServerId') && patch.schedule) {
+    scheduler.configure(next.schedule);
+  }
+  return next;
+});
+
+handle('servers:remove', async (id) => {
+  if (id === Settings.get('activeServerId') && server.getState().status !== 'stopped') {
+    return { ok: false, error: 'SERVER_RUNNING' };
+  }
+  Settings.removeServer(id);
+  return { ok: true, servers: Settings.listServers() };
+});
+
+handle('servers:select', async (id) => {
+  if (server.getState().status !== 'stopped') return { ok: false, error: 'SERVER_RUNNING' };
+  await tunnel.stop();
+  const next = Settings.setActive(id);
+  scheduler.configure(next?.schedule || {});
+  return { ok: true, server: next };
+});
+
+/* ------------------------------ Localisation ------------------------------ */
+
+handle('i18n:bundle', (lang) => {
+  const id = lang || Settings.get('language') || 'en';
+  return { id, strings: i18n.bundle(id), languages: i18n.available() };
+});
+
+handle('i18n:set', (lang) => {
+  Settings.merge({ language: lang });
+  return { id: lang, strings: i18n.bundle(lang) };
+});
+
+/* ------------------------------- Updates --------------------------------- */
+
+handle('app:checkUpdate', async () => {
+  const res = await updater.check(app.getVersion());
+  Settings.merge({ lastUpdateCheck: Date.now() });
+  return res;
+});
+
+/* -------------------------------- Network -------------------------------- */
+
+handle('network:summary', async () => {
+  const { settings } = currentServer();
+  return network.summary(settings?.port || 25565);
+});
+
+handle('network:testPort', async () => {
+  const { settings } = currentServer();
+  return network.testPort(settings?.port || 25565);
+});
+
+handle('network:firewall', async () => {
+  const { settings } = currentServer();
+  return network.addFirewallRule(settings?.port || 25565);
 });
 
 handle('app:info', () => ({
@@ -209,6 +296,8 @@ handle('app:info', () => ({
   platforms: platforms.meta(),
   catalog: { properties: catalog.PROPERTY_GROUPS, gamerules: catalog.GAMERULE_GROUPS },
   totalRamGb: Math.floor(require('os').totalmem() / 1073741824),
+  languages: i18n.available(),
+  language: Settings.get('language') || i18n.detect(app.getLocale()),
 }));
 
 handle('window:minimize', () => win?.minimize());
@@ -257,15 +346,18 @@ handle('platform:versions', (id) => platforms.listVersions(id));
 handle('installer:status', (p) => Installer.inspectServer(p));
 handle('installer:javaFor', (mc) => Installer.requiredJava(mc));
 
-handle('installer:install', async ({ serverPath, platformId, minecraft, build }) => {
+handle('installer:install', async ({ serverId, serverPath, platformId, minecraft, build }) => {
   const res = await Installer.installServer({
     serverPath, platformId, minecraft, build,
     onProgress: (p) => send('task:progress', p),
   });
-  Settings.merge({
-    serverPath, platform: platformId, minecraft,
-    build: res.build, javaPath: res.javaPath,
-  });
+  const id = serverId || Settings.get('activeServerId');
+  if (id) {
+    Settings.updateServer(id, {
+      serverPath, platform: platformId, minecraft,
+      build: res.build, javaPath: res.javaPath,
+    });
+  }
   return res;
 });
 
@@ -274,7 +366,7 @@ handle('installer:install', async ({ serverPath, platformId, minecraft, build })
 handle('server:start', () => startServer());
 handle('server:stop', async () => {
   const { settings } = currentServer();
-  if (settings.backupOnStop && server.getState().status === 'running') {
+  if (settings?.backupOnStop && server.getState().status === 'running') {
     const worldsFound = backups.worldFolders(settings.serverPath, 'world');
     if (worldsFound.length) {
       send('task:progress', { label: 'Copia de seguridad antes de cerrar…', percent: 0 });
@@ -296,8 +388,15 @@ handle('server:recentLog', () => server.getRecentLog());
 /* ---------------------------------- ngrok --------------------------------- */
 
 handle('ngrok:ensure', () => NgrokManager.ensureBinary((p) => send('task:progress', p)));
-handle('ngrok:setToken', (t) => tunnel.setAuthToken(t));
-handle('ngrok:start', (port) => tunnel.start(port));
+handle('ngrok:setToken', async (t) => {
+  const res = await tunnel.setAuthToken(t);
+  if (res.ok) patchActive({ ngrokToken: t });
+  return res;
+});
+handle('ngrok:start', (port) => {
+  const { settings } = currentServer();
+  return tunnel.start(port || settings?.port || 25565);
+});
 handle('ngrok:stop', () => tunnel.stop());
 handle('ngrok:state', () => tunnel.getState());
 

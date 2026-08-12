@@ -1,13 +1,13 @@
 {
   "name": "minehost",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Crea y gestiona servidores de Minecraft en tu propio PC, sin tocar el router.",
   "main": "src/main/main.js",
   "author": "Daniel",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win --dir && node scripts/stamp-icon.js && electron-builder --win --prepackaged release/win-unpacked"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -42,10 +42,20 @@
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "MineHost"
+      "shortcutName": "MineHost",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "installerSidebar": "assets/installerSidebar.bmp",
+      "uninstallerSidebar": "assets/installerSidebar.bmp",
+      "installerHeader": "assets/installerHeader.bmp",
+      "artifactName": "MineHost-Setup-${version}.${ext}"
     }
   }
 }

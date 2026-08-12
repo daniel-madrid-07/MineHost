@@ -81,6 +81,26 @@
       <path d="M9 3h4v4M13 3 7.6 8.4M11.4 9.6v2.8c0 .7-.6 1.2-1.2 1.2H3.8c-.7 0-1.2-.6-1.2-1.2V5.8c0-.7.6-1.2 1.2-1.2h2.8"
             fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
+    <symbol id="i-chev" viewBox="0 0 16 16">
+      <path d="m5 6.5 3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-globe" viewBox="0 0 16 16">
+      <circle cx="8" cy="8" r="5.8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M2.4 6.2h11.2M2.4 9.8h11.2M8 2.2c1.6 1.6 2.4 3.7 2.4 5.8S9.6 12.2 8 13.8C6.4 12.2 5.6 10.1 5.6 8S6.4 3.8 8 2.2Z" fill="none" stroke="currentColor" stroke-width="1.1"/>
+    </symbol>
+    <symbol id="i-router" viewBox="0 0 16 16">
+      <rect x="1.8" y="8.6" width="12.4" height="5.2" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M8 8.6V5.4M5.4 3.4a3.7 3.7 0 0 1 5.2 0M7 5.2a1.4 1.4 0 0 1 2 0" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M4.4 11.2h.01M6.6 11.2h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 16 16">
+      <path d="M2.6 7 8 2.6 13.4 7v6.2c0 .6-.5 1.1-1.1 1.1H3.7c-.6 0-1.1-.5-1.1-1.1V7Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M6.4 14.3V9.4h3.2v4.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 16 16">
+      <path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M13.6 2.2v3.2h-3.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
     <symbol id="i-warn" viewBox="0 0 16 16">
       <path d="M8 2.6 14.2 13H1.8L8 2.6Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M8 6.6v3M8 11.4h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
@@ -100,31 +120,33 @@
 
 <div class="app">
   <aside class="sidebar">
+    <button class="server-switch" id="serverSwitch" data-tour="servers">
+      <span class="pip" id="chipPip"></span>
+      <span class="server-switch-text">
+        <b id="chipTitle">MineHost</b>
+        <span id="chipSub" data-i18n="servers.empty">No servers yet</span>
+      </span>
+      <svg class="ic chev"><use href="#i-chev"/></svg>
+    </button>
+
     <nav class="nav" id="nav">
-      <button class="nav-item active" data-view="panel"><svg class="ic"><use href="#i-panel"/></svg>Panel</button>
-      <button class="nav-item" data-view="mundo"><svg class="ic"><use href="#i-world"/></svg>Mundo</button>
-      <button class="nav-item" data-view="contenido"><svg class="ic"><use href="#i-mods"/></svg><span data-label="contenido">Mods</span></button>
-      <button class="nav-item" data-view="jugadores"><svg class="ic"><use href="#i-players"/></svg>Jugadores</button>
-      <button class="nav-item" data-view="copias"><svg class="ic"><use href="#i-backup"/></svg>Copias</button>
-      <button class="nav-item" data-view="ajustes"><svg class="ic"><use href="#i-settings"/></svg>Ajustes</button>
-      <button class="nav-item" data-view="consola"><svg class="ic"><use href="#i-console"/></svg>Consola</button>
+      <button class="nav-item active" data-view="panel"><svg class="ic"><use href="#i-panel"/></svg><span data-i18n="nav.panel">Dashboard</span></button>
+      <button class="nav-item" data-view="mundo"><svg class="ic"><use href="#i-world"/></svg><span data-i18n="nav.world">World</span></button>
+      <button class="nav-item" data-view="contenido"><svg class="ic"><use href="#i-mods"/></svg><span data-label="contenido" data-i18n="nav.mods">Mods</span></button>
+      <button class="nav-item" data-view="jugadores"><svg class="ic"><use href="#i-players"/></svg><span data-i18n="nav.players">Players</span></button>
+      <button class="nav-item" data-view="copias"><svg class="ic"><use href="#i-backup"/></svg><span data-i18n="nav.backups">Backups</span></button>
+      <button class="nav-item" data-view="ajustes"><svg class="ic"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
+      <button class="nav-item" data-view="consola"><svg class="ic"><use href="#i-console"/></svg><span data-i18n="nav.console">Console</span></button>
     </nav>
 
     <div class="sidebar-foot">
       <div class="meter" id="meterRam" hidden>
-        <div class="meter-head"><span>Memoria</span><b class="num" id="ramValue">—</b></div>
+        <div class="meter-head"><span>RAM</span><b class="num" id="ramValue">—</b></div>
         <div class="track"><i id="ramBar"></i></div>
       </div>
       <div class="meter" id="meterCpu" hidden>
         <div class="meter-head"><span>CPU</span><b class="num" id="cpuValue">—</b></div>
         <div class="track"><i id="cpuBar"></i></div>
-      </div>
-      <div class="server-chip" id="serverChip">
-        <span class="pip" id="chipPip"></span>
-        <div class="server-chip-text">
-          <b id="chipTitle">Sin servidor</b>
-          <span id="chipSub">Sin configurar</span>
-        </div>
       </div>
     </div>
   </aside>
@@ -135,11 +157,11 @@
     <section class="view active" id="view-panel">
       <header class="vhead">
         <div>
-          <h1 class="t-h1">Panel</h1>
-          <p class="t-sm ink-muted">Enciende el servidor y comparte la dirección.</p>
+          <h1 class="t-h1" data-i18n="panel.title">Dashboard</h1>
+          <p class="t-sm ink-muted" data-i18n="panel.subtitle">Start the server and share the address.</p>
         </div>
         <div class="vhead-actions">
-          <button class="btn btn-quiet" id="btnOpenFolder"><svg class="ic"><use href="#i-folder"/></svg>Carpeta</button>
+          <button class="btn btn-quiet" id="btnOpenFolder"><svg class="ic"><use href="#i-folder"/></svg><span data-i18n="panel.folder">Folder</span></button>
           <button class="btn btn-primary" id="btnPower" data-tour="power">
             <svg class="ic"><use href="#i-power"/></svg><span id="btnPowerText">Encender</span>
           </button>
@@ -148,11 +170,9 @@
 
       <div id="panelSetup" class="setup" hidden>
         <div class="setup-inner">
-          <h2 class="t-h2">Vamos a crear tu servidor</h2>
-          <p class="t-body ink-muted">
-            En un par de minutos lo tendrás funcionando. MineHost descarga todo lo necesario, también Java.
-          </p>
-          <button class="btn btn-primary btn-lg" id="btnStartWizard">Empezar</button>
+          <h2 class="t-h2" data-i18n="panel.setupTitle">Set up your server</h2>
+          <p class="t-body ink-muted" data-i18n="panel.setupText">It will be running in a couple of minutes. MineHost downloads everything it needs, Java included.</p>
+          <button class="btn btn-primary btn-lg" id="btnStartWizard" data-i18n="panel.setupCta">Get started</button>
         </div>
       </div>
 
@@ -160,8 +180,8 @@
         <div class="grid-2">
           <article class="card card-address" data-tour="address">
             <div class="chead">
-              <h2 class="chead-title">Dirección para tus amigos</h2>
-              <span class="tag" id="tunnelTag">Sin túnel</span>
+              <h2 class="chead-title" data-i18n="panel.address">Address for your friends</h2>
+              <span class="tag" id="tunnelTag" data-i18n="panel.tunnelNone">No tunnel</span>
             </div>
             <div class="addr-row">
               <code class="addr t-mono" id="addrPublic">—</code>
@@ -170,29 +190,29 @@
               </button>
             </div>
             <div class="addr-row addr-local">
-              <span class="addr-label t-caption ink-subtle">Para ti, en este PC</span>
+              <span class="addr-label t-caption ink-subtle" data-i18n="panel.addressLocal">For you, on this PC</span>
               <code class="addr addr-sm t-mono">localhost</code>
               <button class="btn btn-quiet btn-icon" id="btnCopyLocal" title="Copiar">
                 <svg class="ic"><use href="#i-copy"/></svg>
               </button>
             </div>
-            <p class="t-caption ink-subtle" id="addrHint">Enciende el servidor para generar la dirección.</p>
+            <p class="t-caption ink-subtle" id="addrHint" data-i18n="panel.addressHintStart">Start the server to get the address.</p>
           </article>
 
           <article class="card">
-            <div class="chead"><h2 class="chead-title">Estado</h2></div>
+            <div class="chead"><h2 class="chead-title" data-i18n="panel.state">Status</h2></div>
             <dl class="stats">
-              <div><dt>Servidor</dt><dd id="stState">Apagado</dd></div>
-              <div><dt>Plataforma</dt><dd id="stPlatform">—</dd></div>
-              <div><dt>Conectados</dt><dd class="num" id="stPlayers">0</dd></div>
-              <div><dt>Encendido</dt><dd class="num" id="stUptime">—</dd></div>
+              <div><dt data-i18n="panel.state">Status</dt><dd id="stState">Apagado</dd></div>
+              <div><dt data-i18n="panel.platform">Platform</dt><dd id="stPlatform">—</dd></div>
+              <div><dt data-i18n="panel.playersOnline">Players online</dt><dd class="num" id="stPlayers">0</dd></div>
+              <div><dt data-i18n="panel.uptime">Uptime</dt><dd class="num" id="stUptime">—</dd></div>
             </dl>
           </article>
         </div>
 
         <article class="card">
           <div class="chead">
-            <h2 class="chead-title">Jugadores conectados</h2>
+            <h2 class="chead-title" data-i18n="panel.playersOnline">Players online</h2>
             <span class="tag" id="onlineCount">0</span>
           </div>
           <div id="onlineList" class="online-list"></div>
@@ -204,18 +224,18 @@
     <section class="view" id="view-mundo">
       <header class="vhead">
         <div>
-          <h1 class="t-h1">Mundo</h1>
-          <p class="t-sm ink-muted">Tus mundos, las reglas de juego y los datapacks.</p>
+          <h1 class="t-h1" data-i18n="world.title">World</h1>
+          <p class="t-sm ink-muted" data-i18n="world.subtitle">Your worlds, game rules and datapacks.</p>
         </div>
         <div class="vhead-actions">
-          <button class="btn btn-quiet" id="btnImportWorld"><svg class="ic"><use href="#i-download"/></svg>Importar</button>
+          <button class="btn btn-quiet" id="btnImportWorld"><svg class="ic"><use href="#i-download"/></svg><span data-i18n="world.import">Import</span></button>
         </div>
       </header>
 
       <div class="tabs" id="worldTabs">
-        <button class="tab active" data-tab="mundos">Mundos</button>
-        <button class="tab" data-tab="reglas">Reglas de juego</button>
-        <button class="tab" data-tab="datapacks">Datapacks</button>
+        <button class="tab active" data-tab="mundos" data-i18n="world.tabWorlds">Worlds</button>
+        <button class="tab" data-tab="reglas" data-i18n="world.tabRules">Game rules</button>
+        <button class="tab" data-tab="datapacks" data-i18n="world.tabDatapacks">Datapacks</button>
       </div>
 
       <div class="tabpane active" id="tab-mundos"><div id="worldList" class="rows"></div></div>
@@ -223,14 +243,14 @@
       <div class="tabpane" id="tab-reglas">
         <div class="notice" id="rulesNotice" hidden>
           <svg class="ic"><use href="#i-warn"/></svg>
-          <span>Las reglas se aplican con el servidor encendido.</span>
+          <span data-i18n="world.rulesNotice">Game rules apply while the server is running.</span>
         </div>
         <div id="rulesGroups" class="settings-groups"></div>
       </div>
 
       <div class="tabpane" id="tab-datapacks">
         <div class="dropzone" id="dpDrop">
-          <strong class="t-title">Suelta aquí tus datapacks</strong>
+          <strong class="t-title" data-i18n="world.dropDatapacks">Drop your datapacks here</strong>
           <span class="t-sm ink-subtle">Archivos .zip · se aplican al reiniciar</span>
         </div>
         <div id="dpList" class="rows"></div>
@@ -241,23 +261,23 @@
     <section class="view" id="view-contenido">
       <header class="vhead">
         <div>
-          <h1 class="t-h1" id="contentTitle">Mods</h1>
-          <p class="t-sm ink-muted" id="contentSub">Instalados en tu servidor.</p>
+          <h1 class="t-h1" id="contentTitle" data-i18n="mods.title">Mods</h1>
+          <p class="t-sm ink-muted" id="contentSub" data-i18n="mods.subtitle">Your friends need the same mods to join.</p>
         </div>
         <div class="vhead-actions">
-          <button class="btn btn-quiet" id="btnOpenMods"><svg class="ic"><use href="#i-folder"/></svg>Carpeta</button>
-          <button class="btn btn-quiet" id="btnAddJars"><svg class="ic"><use href="#i-plus"/></svg>Añadir archivo</button>
+          <button class="btn btn-quiet" id="btnOpenMods"><svg class="ic"><use href="#i-folder"/></svg><span data-i18n="mods.folder">Folder</span></button>
+          <button class="btn btn-quiet" id="btnAddJars"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="mods.addFile">Add file</span></button>
         </div>
       </header>
 
       <div class="tabs" id="contentTabs">
-        <button class="tab active" data-tab="instalados">Instalados</button>
-        <button class="tab" data-tab="buscar">Buscar en Modrinth</button>
+        <button class="tab active" data-tab="instalados" data-i18n="mods.tabInstalled">Installed</button>
+        <button class="tab" data-tab="buscar" data-i18n="mods.tabSearch">Search Modrinth</button>
       </div>
 
       <div class="tabpane active" id="tab-instalados">
         <div class="dropzone" id="modDrop">
-          <strong class="t-title" id="dropTitle">Suelta aquí tus mods</strong>
+          <strong class="t-title" id="dropTitle" data-i18n="mods.drop">Drop your mods here</strong>
           <span class="t-sm ink-subtle">Archivos .jar</span>
         </div>
         <div id="modList" class="rows"></div>
@@ -266,7 +286,7 @@
       <div class="tabpane" id="tab-buscar">
         <div class="searchbar">
           <svg class="ic ink-subtle"><use href="#i-search"/></svg>
-          <input type="text" id="mrQuery" placeholder="Busca por nombre… (JEI, Terralith, EssentialsX)" />
+          <input type="text" id="mrQuery" data-i18n-ph="mods.searchPlaceholder" placeholder="Search by name" />
         </div>
         <div id="mrResults" class="rows"></div>
       </div>
@@ -276,21 +296,21 @@
     <section class="view" id="view-jugadores">
       <header class="vhead">
         <div>
-          <h1 class="t-h1">Jugadores</h1>
-          <p class="t-sm ink-muted">Operadores, lista blanca y expulsiones.</p>
+          <h1 class="t-h1" data-i18n="players.title">Players</h1>
+          <p class="t-sm ink-muted" data-i18n="players.subtitle">Operators, whitelist and bans.</p>
         </div>
       </header>
 
       <div class="tabs" id="playerTabs">
-        <button class="tab active" data-tab="ops">Operadores</button>
-        <button class="tab" data-tab="whitelist">Lista blanca</button>
-        <button class="tab" data-tab="bans">Expulsados</button>
-        <button class="tab" data-tab="ipBans">IPs bloqueadas</button>
+        <button class="tab active" data-tab="ops" data-i18n="players.tabOps">Operators</button>
+        <button class="tab" data-tab="whitelist" data-i18n="players.tabWhitelist">Whitelist</button>
+        <button class="tab" data-tab="bans" data-i18n="players.tabBans">Banned</button>
+        <button class="tab" data-tab="ipBans" data-i18n="players.tabIpBans">Blocked IPs</button>
       </div>
 
       <div class="addrow">
-        <input type="text" id="plInput" placeholder="Nombre de Minecraft" autocomplete="off" />
-        <button class="btn btn-primary" id="plAdd"><svg class="ic"><use href="#i-plus"/></svg>Añadir</button>
+        <input type="text" id="plInput" data-i18n-ph="players.namePlaceholder" placeholder="Minecraft username" autocomplete="off" />
+        <button class="btn btn-primary" id="plAdd"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="players.add">Add</span></button>
       </div>
       <p class="t-caption ink-subtle addrow-hint" id="plHint"></p>
 
@@ -301,31 +321,31 @@
     <section class="view" id="view-copias">
       <header class="vhead">
         <div>
-          <h1 class="t-h1">Copias de seguridad</h1>
-          <p class="t-sm ink-muted">Guarda tu mundo antes de que pase algo.</p>
+          <h1 class="t-h1" data-i18n="backups.title">Backups</h1>
+          <p class="t-sm ink-muted" data-i18n="backups.subtitle">Save your world before something goes wrong.</p>
         </div>
         <div class="vhead-actions">
-          <button class="btn btn-quiet" id="btnOpenBackups"><svg class="ic"><use href="#i-folder"/></svg>Carpeta</button>
-          <button class="btn btn-primary" id="btnBackupNow"><svg class="ic"><use href="#i-plus"/></svg>Crear copia</button>
+          <button class="btn btn-quiet" id="btnOpenBackups"><svg class="ic"><use href="#i-folder"/></svg><span data-i18n="backups.folder">Folder</span></button>
+          <button class="btn btn-primary" id="btnBackupNow"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="backups.create">Create backup</span></button>
         </div>
       </header>
 
       <div class="card card-inline">
         <div class="inline-grid">
           <label class="field">
-            <span class="flabel">Copia automática al apagar</span>
+            <span class="flabel" data-i18n="backups.onStop">Back up when stopping</span>
             <label class="switch"><input type="checkbox" id="cfgBackupOnStop"><i></i></label>
           </label>
           <label class="field">
-            <span class="flabel">Copias que se conservan</span>
+            <span class="flabel" data-i18n="backups.keep">Backups to keep</span>
             <input type="number" id="cfgBackupsKeep" min="1" max="60" class="input-sm num" />
           </label>
           <label class="field">
-            <span class="flabel">Copia cada</span>
+            <span class="flabel" data-i18n="backups.every">Back up every</span>
             <div class="row-inline">
               <label class="switch"><input type="checkbox" id="cfgBackupAuto"><i></i></label>
               <input type="number" id="cfgBackupHours" min="1" max="48" class="input-sm num" />
-              <span class="t-sm ink-subtle">horas</span>
+              <span class="t-sm ink-subtle" data-i18n="backups.hours">hours</span>
             </div>
           </label>
         </div>
@@ -338,47 +358,52 @@
     <section class="view" id="view-ajustes">
       <header class="vhead">
         <div>
-          <h1 class="t-h1">Ajustes</h1>
-          <p class="t-sm ink-muted">Servidor, memoria, acceso y opciones del juego.</p>
+          <h1 class="t-h1" data-i18n="settings.title">Settings</h1>
+          <p class="t-sm ink-muted" data-i18n="settings.subtitle">Server, memory, access and game options.</p>
         </div>
         <div class="vhead-actions">
-          <button class="btn btn-primary" id="btnSaveProps">Guardar cambios</button>
+          <button class="btn btn-primary" id="btnSaveProps" data-i18n="settings.save">Save changes</button>
         </div>
       </header>
 
       <div class="tabs" id="settingsTabs">
-        <button class="tab active" data-tab="general">General</button>
-        <button class="tab" data-tab="acceso">Acceso remoto</button>
-        <button class="tab" data-tab="opciones">Opciones del juego</button>
-        <button class="tab" data-tab="tareas">Tareas programadas</button>
+        <button class="tab active" data-tab="general" data-i18n="settings.tabGeneral">General</button>
+        <button class="tab" data-tab="acceso" data-i18n="settings.tabAccess">Remote access</button>
+        <button class="tab" data-tab="opciones" data-i18n="settings.tabOptions">Game options</button>
+        <button class="tab" data-tab="tareas" data-i18n="settings.tabTasks">Scheduled tasks</button>
       </div>
 
       <!-- General -->
       <div class="tabpane active" id="tab-general">
         <article class="card">
-          <div class="chead"><h2 class="chead-title">Servidor</h2></div>
+          <div class="chead"><h2 class="chead-title" data-i18n="settings.serverSection">Server</h2></div>
 
           <div class="field">
-            <span class="flabel">Carpeta del servidor</span>
+            <span class="flabel" data-i18n="settings.folder">Server folder</span>
             <div class="row-inline">
-              <input type="text" id="inpPath" placeholder="Elige una carpeta…" readonly />
-              <button class="btn btn-quiet" id="btnPickFolder">Elegir…</button>
+              <input type="text" id="inpPath" data-i18n-ph="wizard.folderNone" placeholder="No folder chosen" readonly />
+              <button class="btn btn-quiet" id="btnPickFolder" data-i18n="settings.choose">Choose</button>
             </div>
-            <small class="t-caption ink-subtle" id="pathHint">Aquí se guardan el mundo, los mods y las copias.</small>
+            <small class="t-caption ink-subtle" id="pathHint" data-i18n="settings.folderHint">The world, mods and backups live here.</small>
           </div>
 
           <div class="field">
-            <span class="flabel">Plataforma y versión</span>
+            <span class="flabel" data-i18n="settings.platformVersion">Platform and version</span>
             <div class="row-inline">
               <select id="selPlatform"></select>
               <select id="selVersion"><option>—</option></select>
-              <button class="btn btn-primary" id="btnInstall">Instalar</button>
+              <button class="btn btn-primary" id="btnInstall" data-i18n="settings.install">Install</button>
             </div>
             <small class="t-caption ink-subtle" id="platformHint"></small>
           </div>
 
           <div class="field">
-            <span class="flabel">Memoria para el servidor</span>
+            <span class="flabel" data-i18n="settings.name">Server name</span>
+            <input type="text" id="inpServerName" data-i18n-ph="servers.namePlaceholder" placeholder="Server name" />
+          </div>
+
+          <div class="field">
+            <span class="flabel" data-i18n="settings.memory">Memory for the server</span>
             <div class="ram-row">
               <input type="range" id="ramRange" min="1" step="1" />
               <div class="ram-input">
@@ -391,67 +416,182 @@
         </article>
 
         <article class="card">
-          <div class="chead"><h2 class="chead-title">Comportamiento</h2></div>
+          <div class="chead"><h2 class="chead-title" data-i18n="settings.behaviour">Behaviour</h2></div>
           <label class="switch-row">
             <div>
-              <b class="t-body">Reiniciar si el servidor falla</b>
-              <span class="t-caption ink-subtle">Vuelve a arrancar solo tras un cierre inesperado.</span>
+              <b class="t-body" data-i18n="settings.autoRestart">Restart if the server crashes</b>
+              <span class="t-caption ink-subtle" data-i18n="settings.autoRestartHint">Starts again on its own after an unexpected shutdown.</span>
             </div>
             <label class="switch"><input type="checkbox" id="cfgAutoRestart"><i></i></label>
           </label>
           <label class="switch-row">
             <div>
-              <b class="t-body">Abrir el túnel al encender</b>
-              <span class="t-caption ink-subtle">Genera la dirección pública automáticamente.</span>
+              <b class="t-body" data-i18n="settings.autoTunnel">Open the tunnel on start</b>
+              <span class="t-caption ink-subtle" data-i18n="settings.autoTunnelHint">Generates the public address automatically.</span>
             </div>
             <label class="switch"><input type="checkbox" id="cfgAutoTunnel"><i></i></label>
           </label>
         </article>
+
+        <article class="card">
+          <div class="chead"><h2 class="chead-title" data-i18n="settings.appSection">Application</h2></div>
+
+          <div class="field">
+            <span class="flabel" data-i18n="settings.language">Language</span>
+            <select id="selLanguage"></select>
+          </div>
+
+          <div class="field">
+            <div class="row-inline">
+              <button class="btn btn-quiet" id="btnCheckUpdate" data-i18n="settings.checkUpdates">Check for updates</button>
+              <small class="t-caption ink-subtle" id="updateHint"></small>
+            </div>
+          </div>
+        </article>
       </div>
 
-      <!-- Acceso remoto -->
+      <!-- Remote access -->
       <div class="tabpane" id="tab-acceso">
-        <article class="card" data-tour="ngrok">
-          <div class="chead"><h2 class="chead-title">Acceso desde fuera de tu red</h2></div>
-          <p class="t-body ink-muted card-intro">
-            Tu PC no es accesible desde internet por sí solo. MineHost usa ngrok para crear un túnel,
-            así tus amigos entran sin que toques el router.
-          </p>
+        <article class="card" data-tour="access">
+          <div class="chead"><h2 class="chead-title" data-i18n="access.title">How your friends connect</h2></div>
+          <p class="t-body ink-muted card-intro" data-i18n="access.intro">Choose how people reach your PC.</p>
 
+          <div class="mode-grid" id="exposureModes">
+            <button class="mode" data-mode="tunnel">
+              <svg class="ic"><use href="#i-globe"/></svg>
+              <b data-i18n="access.tunnel">Tunnel (ngrok)</b>
+              <span data-i18n="access.tunnelBlurb">Works without touching the router.</span>
+              <svg class="ic tick"><use href="#i-check"/></svg>
+            </button>
+            <button class="mode" data-mode="portforward">
+              <svg class="ic"><use href="#i-router"/></svg>
+              <b data-i18n="access.forward">Port forwarding</b>
+              <span data-i18n="access.forwardBlurb">Direct connection, better latency.</span>
+              <svg class="ic tick"><use href="#i-check"/></svg>
+            </button>
+            <button class="mode" data-mode="lan">
+              <svg class="ic"><use href="#i-home"/></svg>
+              <b data-i18n="access.lan">Local network only</b>
+              <span data-i18n="access.lanBlurb">Just for people in your own home.</span>
+              <svg class="ic tick"><use href="#i-check"/></svg>
+            </button>
+          </div>
+        </article>
+
+        <!-- Tunnel -->
+        <article class="card" id="paneTunnel" data-tour="ngrok">
+          <div class="chead"><h2 class="chead-title" data-i18n="access.tunnelSection">Tunnel setup</h2></div>
           <ol class="steps">
             <li>
               <span class="step-n">1</span>
               <div>
-                <b class="t-body">Crea una cuenta gratuita</b>
-                <p class="t-sm ink-muted">Necesitas verificar una tarjeta; ngrok no cobra nada por el plan gratuito.</p>
+                <b class="t-body" data-i18n="access.step1">Create a free account</b>
+                <p class="t-sm ink-muted" data-i18n="access.step1Hint">You need to verify a card.</p>
                 <button class="btn btn-quiet btn-sm" id="btnNgrokSignup">
-                  <svg class="ic"><use href="#i-external"/></svg>Abrir ngrok.com
+                  <svg class="ic"><use href="#i-external"/></svg><span data-i18n="access.step1Cta">Open ngrok.com</span>
                 </button>
               </div>
             </li>
             <li>
               <span class="step-n">2</span>
               <div>
-                <b class="t-body">Copia tu authtoken</b>
-                <p class="t-sm ink-muted">Está en el panel, en «Your Authtoken».</p>
+                <b class="t-body" data-i18n="access.step2">Copy your authtoken</b>
+                <p class="t-sm ink-muted" data-i18n="access.step2Hint">It is in the dashboard.</p>
                 <button class="btn btn-quiet btn-sm" id="btnNgrokToken">
-                  <svg class="ic"><use href="#i-external"/></svg>Ver mi authtoken
+                  <svg class="ic"><use href="#i-external"/></svg><span data-i18n="access.step2Cta">See my authtoken</span>
                 </button>
               </div>
             </li>
             <li>
               <span class="step-n">3</span>
               <div>
-                <b class="t-body">Pégalo aquí</b>
+                <b class="t-body" data-i18n="access.step3">Paste it here</b>
                 <div class="row-inline token-row">
-                  <input type="password" id="inpToken" placeholder="2ab…" />
-                  <button class="btn btn-quiet btn-icon" id="btnEyeToken" title="Mostrar">Ver</button>
-                  <button class="btn btn-primary" id="btnSaveToken">Guardar</button>
+                  <input type="password" id="inpToken" placeholder="2ab..." />
+                  <button class="btn btn-quiet btn-icon" id="btnEyeToken" data-i18n="access.show">Show</button>
+                  <button class="btn btn-primary" id="btnSaveToken" data-i18n="common.save">Save</button>
                 </div>
                 <small class="t-caption" id="tokenHint"></small>
               </div>
             </li>
           </ol>
+        </article>
+
+        <!-- Port forwarding -->
+        <article class="card" id="paneForward" hidden>
+          <div class="chead">
+            <h2 class="chead-title" data-i18n="access.forwardSection">Port forwarding setup</h2>
+            <button class="btn btn-quiet btn-sm" id="btnNetRefresh">
+              <svg class="ic"><use href="#i-refresh"/></svg>
+            </button>
+          </div>
+
+          <div class="notice" id="cgnatNotice" hidden>
+            <svg class="ic"><use href="#i-warn"/></svg>
+            <span data-i18n="access.forwardCgnat">Your provider appears to use CGNAT.</span>
+          </div>
+
+          <ol class="steps">
+            <li>
+              <span class="step-n">1</span>
+              <div>
+                <b class="t-body" data-i18n="access.forwardStep1">Give this PC a fixed IP</b>
+                <p class="t-sm ink-muted" id="fwStep1Hint"></p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div>
+                <b class="t-body" data-i18n="access.forwardStep2">Open the port on the router</b>
+                <p class="t-sm ink-muted" id="fwStep2Hint"></p>
+                <button class="btn btn-quiet btn-sm" id="btnOpenRouter">
+                  <svg class="ic"><use href="#i-external"/></svg><span id="routerUrl">192.168.1.1</span>
+                </button>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div>
+                <b class="t-body" data-i18n="access.forwardStep3">Allow it in Windows Firewall</b>
+                <p class="t-sm ink-muted" data-i18n="access.forwardStep3Hint">MineHost can add the rule for you.</p>
+                <button class="btn btn-quiet btn-sm" id="btnFirewall" data-i18n="access.forwardStep3Cta">Add firewall rule</button>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">4</span>
+              <div>
+                <b class="t-body" data-i18n="access.forwardStep4">Share your public address</b>
+                <p class="t-sm ink-muted" data-i18n="access.forwardStep4Hint">This is what your friends type.</p>
+                <div class="addr-row">
+                  <code class="addr t-mono" id="fwPublicAddr">—</code>
+                  <button class="btn btn-quiet btn-icon" id="btnCopyForward">
+                    <svg class="ic"><use href="#i-copy"/></svg>
+                  </button>
+                </div>
+                <div class="row-inline" style="margin-top:10px">
+                  <button class="btn btn-primary btn-sm" id="btnTestPort" data-i18n="access.forwardTest">Test port</button>
+                  <small class="t-caption" id="portHint"></small>
+                </div>
+              </div>
+            </li>
+          </ol>
+
+          <div class="field" style="margin-top:16px">
+            <span class="flabel" data-i18n="access.port">Port</span>
+            <input type="number" id="inpPort" class="input-sm num" min="1024" max="65535" style="width:120px" />
+          </div>
+        </article>
+
+        <!-- LAN -->
+        <article class="card" id="paneLan" hidden>
+          <div class="chead"><h2 class="chead-title" data-i18n="access.lanSection">Local network</h2></div>
+          <p class="t-body ink-muted card-intro" data-i18n="access.lanIntro">Anyone on your network can join.</p>
+          <div class="addr-row">
+            <code class="addr t-mono" id="lanAddr">—</code>
+            <button class="btn btn-quiet btn-icon" id="btnCopyLan">
+              <svg class="ic"><use href="#i-copy"/></svg>
+            </button>
+          </div>
         </article>
       </div>
 
@@ -463,16 +603,14 @@
       <!-- Tareas -->
       <div class="tabpane" id="tab-tareas">
         <article class="card">
-          <div class="chead"><h2 class="chead-title">Reinicio programado</h2></div>
-          <p class="t-body ink-muted card-intro">
-            Reiniciar cada día libera memoria y mantiene el servidor fluido. Se avisa por el chat antes.
-          </p>
+          <div class="chead"><h2 class="chead-title" data-i18n="settings.restartSection">Scheduled restart</h2></div>
+          <p class="t-body ink-muted card-intro" data-i18n="settings.restartIntro">A daily restart frees memory and keeps the server smooth.</p>
           <label class="switch-row">
-            <div><b class="t-body">Reiniciar todos los días</b></div>
+            <div><b class="t-body" data-i18n="settings.restartTask">Restart every day</b></div>
             <label class="switch"><input type="checkbox" id="cfgRestartOn"><i></i></label>
           </label>
           <div class="field">
-            <span class="flabel">Hora</span>
+            <span class="flabel" data-i18n="settings.restartTime">Time</span>
             <input type="time" id="cfgRestartTime" class="input-sm" />
             <small class="t-caption ink-subtle" id="nextRestartHint"></small>
           </div>
@@ -484,15 +622,15 @@
     <section class="view" id="view-consola">
       <header class="vhead">
         <div>
-          <h1 class="t-h1">Consola</h1>
-          <p class="t-sm ink-muted">Todo lo que ocurre en el servidor, en directo.</p>
+          <h1 class="t-h1" data-i18n="console.title">Console</h1>
+          <p class="t-sm ink-muted" data-i18n="console.subtitle">Everything happening on the server, live.</p>
         </div>
         <div class="vhead-actions">
           <div class="searchbar searchbar-sm">
             <svg class="ic ink-subtle"><use href="#i-search"/></svg>
-            <input type="text" id="logFilter" placeholder="Filtrar…" />
+            <input type="text" id="logFilter" data-i18n-ph="console.filter" placeholder="Filter" />
           </div>
-          <button class="btn btn-quiet" id="btnClearLog">Limpiar</button>
+          <button class="btn btn-quiet" id="btnClearLog" data-i18n="console.clear">Clear</button>
         </div>
       </header>
 
@@ -500,8 +638,8 @@
 
       <form class="cmdbar" id="cmdForm">
         <span class="cmd-prompt t-mono">/</span>
-        <input type="text" id="cmdInput" class="t-mono" placeholder="say Hola a todos" autocomplete="off" spellcheck="false" />
-        <button class="btn btn-quiet" type="submit" id="cmdSend">Enviar</button>
+        <input type="text" id="cmdInput" class="t-mono" data-i18n-ph="console.placeholder" placeholder="say Hello everyone" autocomplete="off" spellcheck="false" />
+        <button class="btn btn-quiet" type="submit" id="cmdSend" data-i18n="console.send">Send</button>
       </form>
     </section>
 
@@ -514,15 +652,15 @@
     <div class="wz-progress"><i id="wzProgress"></i></div>
     <div class="modal-body">
       <span class="t-caption ink-subtle" id="wzStep">Paso 1 de 3</span>
-      <h2 class="t-h2" id="wzTitle">¿Dónde guardamos el servidor?</h2>
+      <h2 class="t-h2" id="wzTitle"></h2>
       <p class="t-body ink-muted" id="wzText"></p>
       <div id="wzContent"></div>
     </div>
     <footer class="modal-foot">
-      <button class="btn btn-quiet" id="wzBack">Atrás</button>
+      <button class="btn btn-quiet" id="wzBack" data-i18n="wizard.back">Back</button>
       <div class="grow"></div>
-      <button class="btn btn-quiet" id="wzCancel">Cancelar</button>
-      <button class="btn btn-primary" id="wzNext">Continuar</button>
+      <button class="btn btn-quiet" id="wzCancel" data-i18n="wizard.cancel">Cancel</button>
+      <button class="btn btn-primary" id="wzNext" data-i18n="wizard.next">Continue</button>
     </footer>
   </div>
 </div>
@@ -531,13 +669,13 @@
 <div class="modal-scrim" id="confirm" hidden>
   <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle">
     <div class="modal-body">
-      <h2 class="t-h2" id="cfTitle">¿Seguro?</h2>
+      <h2 class="t-h2" id="cfTitle"></h2>
       <p class="t-body ink-muted" id="cfText"></p>
     </div>
     <footer class="modal-foot">
       <div class="grow"></div>
-      <button class="btn btn-quiet" id="cfNo">Cancelar</button>
-      <button class="btn btn-danger" id="cfYes">Continuar</button>
+      <button class="btn btn-quiet" id="cfNo" data-i18n="common.cancel">Cancel</button>
+      <button class="btn btn-danger" id="cfYes" data-i18n="common.continue">Continue</button>
     </footer>
   </div>
 </div>
@@ -568,14 +706,48 @@
   <div class="tour-pop" id="tourPop" role="dialog" aria-live="polite">
     <div class="tour-pop-head">
       <span class="t-caption ink-subtle" id="tourStep">Paso 1 de 4</span>
-      <button class="tour-skip" id="tourSkip">Saltar</button>
+      <button class="tour-skip" id="tourSkip" data-i18n="tour.skip">Skip</button>
     </div>
     <h3 class="t-title" id="tourTitle"></h3>
     <p class="t-sm ink-muted" id="tourText"></p>
     <div class="tour-pop-foot">
       <div class="tour-dots" id="tourDots"></div>
-      <button class="btn btn-primary btn-sm" id="tourNext">Siguiente</button>
+      <button class="btn btn-primary btn-sm" id="tourNext" data-i18n="tour.next">Next</button>
     </div>
+  </div>
+</div>
+
+
+<!-- Server picker -->
+<div class="modal-scrim" id="pickerScrim" hidden>
+  <div class="modal modal-picker" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
+    <div class="modal-body">
+      <h2 class="t-h2" id="pkTitle" data-i18n="servers.title">Your servers</h2>
+      <p class="t-body ink-muted" data-i18n="servers.subtitle">Pick one to manage, or create another.</p>
+      <div id="pkList" class="rows pk-list"></div>
+    </div>
+    <footer class="modal-foot">
+      <button class="btn btn-primary" id="pkNew">
+        <svg class="ic"><use href="#i-plus"/></svg><span data-i18n="servers.new">New server</span>
+      </button>
+      <div class="grow"></div>
+      <button class="btn btn-quiet" id="pkClose" data-i18n="common.cancel">Cancel</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Prompt -->
+<div class="modal-scrim" id="promptScrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+    <div class="modal-body">
+      <h2 class="t-h2" id="pmTitle"></h2>
+      <input type="text" id="pmInput" />
+    </div>
+    <footer class="modal-foot">
+      <div class="grow"></div>
+      <button class="btn btn-quiet" id="pmNo" data-i18n="common.cancel">Cancel</button>
+      <button class="btn btn-primary" id="pmYes" data-i18n="common.save">Save</button>
+    </footer>
   </div>
 </div>
 

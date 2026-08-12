@@ -22,6 +22,30 @@ contextBridge.exposeInMainWorld('mh', {
     set: invoke('settings:set'),
   },
 
+  servers: {
+    list: invoke('servers:list'),
+    active: invoke('servers:active'),
+    add: invoke('servers:add'),
+    update: (id, patch) => ipcRenderer.invoke('servers:update', { id, patch }),
+    remove: invoke('servers:remove'),
+    select: invoke('servers:select'),
+  },
+
+  i18n: {
+    bundle: invoke('i18n:bundle'),
+    set: invoke('i18n:set'),
+  },
+
+  updates: {
+    check: invoke('app:checkUpdate'),
+  },
+
+  network: {
+    summary: invoke('network:summary'),
+    testPort: invoke('network:testPort'),
+    firewall: invoke('network:firewall'),
+  },
+
   dialog: {
     pickFolder: invoke('dialog:pickFolder'),
     pickJars: invoke('dialog:pickJars'),
