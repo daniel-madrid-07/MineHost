@@ -1,6 +1,5 @@
 {
   "app.tagline": "Локальные серверы",
-
   "nav.panel": "Панель",
   "nav.world": "Мир",
   "nav.mods": "Моды",
@@ -9,12 +8,10 @@
   "nav.backups": "Бэкапы",
   "nav.settings": "Настройки",
   "nav.console": "Консоль",
-
   "status.stopped": "Выключен",
   "status.starting": "Запускается",
   "status.running": "В сети",
   "status.stopping": "Останавливается",
-
   "servers.title": "Твои серверы",
   "servers.subtitle": "Выбери сервер или создай ещё один.",
   "servers.new": "Новый сервер",
@@ -30,7 +27,6 @@
   "servers.manage": "Серверы",
   "servers.renameTitle": "Переименовать сервер",
   "servers.created": "Сервер создан.",
-
   "panel.title": "Панель",
   "panel.subtitle": "Запусти сервер и дай друзьям адрес.",
   "panel.folder": "Папка",
@@ -56,7 +52,6 @@
   "panel.tunnelLive": "Работает",
   "panel.tunnelOpening": "Открывается",
   "panel.tunnelNone": "Туннеля нет",
-
   "world.title": "Мир",
   "world.subtitle": "Твои миры, игровые правила и датапаки.",
   "world.import": "Импорт",
@@ -83,7 +78,6 @@
   "world.datapacksAdded": "Добавлено датапаков: {n}. Перезапусти, чтобы применить.",
   "world.datapackDeleteTitle": "Удалить датапак",
   "world.datapackDeleteText": "{name} будет удалён.",
-
   "mods.title": "Моды",
   "mods.titlePlugins": "Плагины",
   "mods.subtitle": "Друзьям нужны те же моды, чтобы зайти.",
@@ -122,7 +116,6 @@
   "mods.installedOk": "{name} установлен.",
   "mods.installedDeps": "{name} установлен, вместе с зависимостями: {n}.",
   "mods.onlyJar": "Принимаются только файлы {ext}",
-
   "players.title": "Игроки",
   "players.subtitle": "Операторы, белый список и баны.",
   "players.tabOps": "Операторы",
@@ -146,7 +139,6 @@
   "players.removed": "{name} убран из списка.",
   "players.kicked": "{name} кикнут.",
   "players.kickReason": "Кикнут администратором",
-
   "backups.title": "Бэкапы",
   "backups.subtitle": "Сохрани мир, пока ничего не сломалось.",
   "backups.create": "Создать бэкап",
@@ -168,7 +160,6 @@
   "backups.created": "Бэкап создан ({size}).",
   "backups.restoring": "Восстанавливаем бэкап",
   "backups.restored": "Бэкап восстановлен.",
-
   "settings.title": "Настройки",
   "settings.subtitle": "Сервер, память, доступ и параметры игры.",
   "settings.save": "Сохранить изменения",
@@ -212,7 +203,6 @@
   "settings.restartTask": "Перезапускать каждый день",
   "settings.restartTime": "Время",
   "settings.nextRestart": "Следующий перезапуск: {when}",
-
   "access.title": "Как подключатся твои друзья",
   "access.intro": "Выбери, как люди будут добираться до твоего ПК. Поменять можно в любой момент.",
   "access.tunnel": "Туннель (ngrok)",
@@ -259,7 +249,6 @@
   "access.firewallFailed": "Не удалось добавить правило. Можешь добавить его вручную в брандмауэре Windows.",
   "access.lanSection": "Локальная сеть",
   "access.lanIntro": "Любой в твоей сети зайдёт по адресу ниже. Больше настраивать нечего.",
-
   "console.title": "Консоль",
   "console.subtitle": "Всё, что происходит на сервере, в прямом эфире.",
   "console.filter": "Фильтр",
@@ -267,7 +256,6 @@
   "console.send": "Отправить",
   "console.placeholder": "say Привет всем",
   "console.tunnelPrefix": "туннель",
-
   "wizard.step": "Шаг {n} из {total}",
   "wizard.next": "Дальше",
   "wizard.back": "Назад",
@@ -290,7 +278,6 @@
   "wizard.needVersion": "Выбери версию.",
   "wizard.installing": "Устанавливаем сервер",
   "wizard.ready": "Сервер готов.",
-
   "tour.skip": "Пропустить",
   "tour.next": "Дальше",
   "tour.done": "Понятно",
@@ -308,7 +295,6 @@
   "tour.backupText": "Перед установкой модов или сменой мира сохрани копию. Один клик — и всё вернулось.",
   "tour.serversTitle": "Все твои серверы",
   "tour.serversText": "Здесь можно держать несколько и переключаться между ними когда угодно.",
-
   "common.cancel": "Отмена",
   "common.continue": "Продолжить",
   "common.delete": "Удалить",
@@ -323,5 +309,8 @@
   "common.copied": "Скопировано.",
   "common.folder": "Папка",
   "common.versionsFailed": "Не удалось загрузить список версий.",
-  "common.noVersions": "Нет доступных версий"
+  "common.noVersions": "Нет доступных версий",
+  "versions.showBeta": "Показывать бета-версии",
+  "versions.betaTag": "бета",
+  "versions.betaHint": "Бета-версии не доделаны и могут сломать мир. Бери такую, только если её требует мод."
 }

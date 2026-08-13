@@ -291,11 +291,11 @@ handle('network:firewall', async () => {
   return network.addFirewallRule(settings?.port || 25565);
 });
 
-handle('app:info', () => ({
+handle('app:info', async () => ({
   version: app.getVersion(),
   platforms: platforms.meta(),
   catalog: { properties: catalog.PROPERTY_GROUPS, gamerules: catalog.GAMERULE_GROUPS },
-  totalRamGb: Math.floor(require('os').totalmem() / 1073741824),
+  totalRamGb: await network.totalRamGb(),
   languages: i18n.available(),
   language: Settings.get('language') || i18n.detect(app.getLocale()),
 }));

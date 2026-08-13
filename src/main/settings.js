@@ -12,6 +12,7 @@ const APP_DEFAULTS = {
   onboardingDone: false,
   windowBounds: null,
   lastUpdateCheck: 0,
+  showBetaVersions: false,
 };
 
 /** A server entry. `exposure` decides between the tunnel and port forwarding. */

@@ -1,6 +1,5 @@
 {
   "app.tagline": "Serveurs locaux",
-
   "nav.panel": "Tableau de bord",
   "nav.world": "Monde",
   "nav.mods": "Mods",
@@ -9,12 +8,10 @@
   "nav.backups": "Sauvegardes",
   "nav.settings": "Réglages",
   "nav.console": "Console",
-
   "status.stopped": "Hors ligne",
   "status.starting": "Démarrage",
   "status.running": "En ligne",
   "status.stopping": "Arrêt",
-
   "servers.title": "Vos serveurs",
   "servers.subtitle": "Choisissez-en un à gérer, ou créez-en un autre.",
   "servers.new": "Nouveau serveur",
@@ -30,7 +27,6 @@
   "servers.manage": "Serveurs",
   "servers.renameTitle": "Renommer le serveur",
   "servers.created": "Serveur créé.",
-
   "panel.title": "Tableau de bord",
   "panel.subtitle": "Démarrez le serveur et partagez l'adresse.",
   "panel.folder": "Dossier",
@@ -56,7 +52,6 @@
   "panel.tunnelLive": "Actif",
   "panel.tunnelOpening": "Ouverture",
   "panel.tunnelNone": "Pas de tunnel",
-
   "world.title": "Monde",
   "world.subtitle": "Vos mondes, les règles de jeu et les datapacks.",
   "world.import": "Importer",
@@ -83,7 +78,6 @@
   "world.datapacksAdded": "{n} datapack(s) ajouté(s). Redémarrez pour appliquer.",
   "world.datapackDeleteTitle": "Supprimer le datapack",
   "world.datapackDeleteText": "{name} sera supprimé.",
-
   "mods.title": "Mods",
   "mods.titlePlugins": "Plugins",
   "mods.subtitle": "Vos amis ont besoin des mêmes mods pour vous rejoindre.",
@@ -122,7 +116,6 @@
   "mods.installedOk": "{name} installé.",
   "mods.installedDeps": "{name} installé, avec {n} dépendance(s).",
   "mods.onlyJar": "Seuls les fichiers {ext} sont acceptés",
-
   "players.title": "Joueurs",
   "players.subtitle": "Opérateurs, liste blanche et bannissements.",
   "players.tabOps": "Opérateurs",
@@ -146,7 +139,6 @@
   "players.removed": "{name} retiré de la liste.",
   "players.kicked": "{name} expulsé.",
   "players.kickReason": "Expulsé par l'administrateur",
-
   "backups.title": "Sauvegardes",
   "backups.subtitle": "Sauvegardez votre monde avant qu'un problème arrive.",
   "backups.create": "Créer une sauvegarde",
@@ -168,7 +160,6 @@
   "backups.created": "Sauvegarde créée ({size}).",
   "backups.restoring": "Restauration de la sauvegarde",
   "backups.restored": "Sauvegarde restaurée.",
-
   "settings.title": "Réglages",
   "settings.subtitle": "Serveur, mémoire, accès et options de jeu.",
   "settings.save": "Enregistrer",
@@ -212,7 +203,6 @@
   "settings.restartTask": "Redémarrer tous les jours",
   "settings.restartTime": "Heure",
   "settings.nextRestart": "Prochain redémarrage : {when}",
-
   "access.title": "Comment vos amis se connectent",
   "access.intro": "Choisissez comment les gens rejoignent votre PC. Vous pouvez changer d'avis quand vous voulez.",
   "access.tunnel": "Tunnel (ngrok)",
@@ -259,7 +249,6 @@
   "access.firewallFailed": "Impossible d'ajouter la règle. Vous pouvez la créer à la main dans le pare-feu Windows.",
   "access.lanSection": "Réseau local",
   "access.lanIntro": "Tout le monde sur votre réseau peut vous rejoindre avec l'adresse ci-dessous. Rien d'autre à faire.",
-
   "console.title": "Console",
   "console.subtitle": "Tout ce qui se passe sur le serveur, en direct.",
   "console.filter": "Filtrer",
@@ -267,7 +256,6 @@
   "console.send": "Envoyer",
   "console.placeholder": "say Salut tout le monde",
   "console.tunnelPrefix": "tunnel",
-
   "wizard.step": "Étape {n} sur {total}",
   "wizard.next": "Continuer",
   "wizard.back": "Retour",
@@ -290,7 +278,6 @@
   "wizard.needVersion": "Choisissez une version.",
   "wizard.installing": "Installation du serveur",
   "wizard.ready": "Serveur prêt.",
-
   "tour.skip": "Passer",
   "tour.next": "Suivant",
   "tour.done": "Compris",
@@ -308,7 +295,6 @@
   "tour.backupText": "Avant d'installer des mods ou de changer le monde, gardez une copie. Un clic la restaure.",
   "tour.serversTitle": "Tous vos serveurs",
   "tour.serversText": "Vous pouvez en garder plusieurs ici et passer de l'un à l'autre quand vous voulez.",
-
   "common.cancel": "Annuler",
   "common.continue": "Continuer",
   "common.delete": "Supprimer",
@@ -323,5 +309,8 @@
   "common.copied": "Copié.",
   "common.folder": "Dossier",
   "common.versionsFailed": "Impossible de charger la liste des versions.",
-  "common.noVersions": "Aucune version disponible"
+  "common.noVersions": "Aucune version disponible",
+  "versions.showBeta": "Afficher les versions bêta",
+  "versions.betaTag": "bêta",
+  "versions.betaHint": "Les bêtas sont inachevées et peuvent casser votre monde. N en choisissez une que si un mod l exige."
 }

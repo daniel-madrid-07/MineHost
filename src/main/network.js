@@ -124,6 +124,35 @@ function addFirewallRule(port) {
   });
 }
 
+
+/**
+ * Installed RAM in GB. `os.totalmem()` reports what the OS can address, which
+ * on a 64 GB machine is around 61.7 GB once hardware reservations are taken
+ * out — showing that as "your machine has 61 GB" reads like a mistake. The
+ * physical modules give the number printed on the box, so prefer it.
+ */
+function totalRamGb() {
+  return new Promise((resolve) => {
+    const fallback = Math.round(os.totalmem() / 1073741824);
+    const proc = spawn('powershell', [
+      '-NoProfile', '-Command',
+      '(Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum',
+    ], { windowsHide: true });
+
+    let out = '';
+    proc.stdout.on('data', (d) => { out += d; });
+    proc.on('error', () => resolve(fallback));
+    proc.on('close', () => {
+      const bytes = parseInt(out.trim(), 10);
+      if (!bytes || !Number.isFinite(bytes)) return resolve(fallback);
+      const gb = Math.round(bytes / 1073741824);
+      // Guard against a bogus reading: it can never be below what the OS sees.
+      resolve(gb >= fallback ? gb : fallback);
+    });
+    setTimeout(() => { try { proc.kill(); } catch (_) {} resolve(fallback); }, 5000);
+  });
+}
+
 async function summary(port) {
   const [ip, gw] = await Promise.all([publicAddress(), gateway()]);
   const locals = localAddresses();
@@ -136,6 +165,6 @@ async function summary(port) {
 }
 
 module.exports = {
-  localAddresses, publicAddress, gateway, summary,
+  localAddresses, publicAddress, gateway, summary, totalRamGb,
   testPort, addFirewallRule, isListeningLocally,
 };

@@ -1,6 +1,5 @@
 {
   "app.tagline": "Server in casa tua",
-
   "nav.panel": "Pannello",
   "nav.world": "Mondo",
   "nav.mods": "Mod",
@@ -9,12 +8,10 @@
   "nav.backups": "Backup",
   "nav.settings": "Impostazioni",
   "nav.console": "Console",
-
   "status.stopped": "Offline",
   "status.starting": "In avvio",
   "status.running": "Online",
   "status.stopping": "In arresto",
-
   "servers.title": "I tuoi server",
   "servers.subtitle": "Scegline uno da gestire, oppure creane un altro.",
   "servers.new": "Nuovo server",
@@ -30,7 +27,6 @@
   "servers.manage": "Server",
   "servers.renameTitle": "Rinomina il server",
   "servers.created": "Server creato.",
-
   "panel.title": "Pannello",
   "panel.subtitle": "Avvia il server e condividi l'indirizzo.",
   "panel.folder": "Cartella",
@@ -56,7 +52,6 @@
   "panel.tunnelLive": "Attivo",
   "panel.tunnelOpening": "In apertura",
   "panel.tunnelNone": "Nessun tunnel",
-
   "world.title": "Mondo",
   "world.subtitle": "I tuoi mondi, le regole di gioco e i datapack.",
   "world.import": "Importa",
@@ -83,7 +78,6 @@
   "world.datapacksAdded": "{n} datapack aggiunti. Riavvia per applicarli.",
   "world.datapackDeleteTitle": "Elimina il datapack",
   "world.datapackDeleteText": "{name} verrà rimosso.",
-
   "mods.title": "Mod",
   "mods.titlePlugins": "Plugin",
   "mods.subtitle": "I tuoi amici hanno bisogno delle stesse mod per entrare.",
@@ -122,7 +116,6 @@
   "mods.installedOk": "{name} installata.",
   "mods.installedDeps": "{name} installata, insieme a {n} dipendenze.",
   "mods.onlyJar": "Si accettano solo file {ext}",
-
   "players.title": "Giocatori",
   "players.subtitle": "Operatori, whitelist e ban.",
   "players.tabOps": "Operatori",
@@ -146,7 +139,6 @@
   "players.removed": "{name} tolto dalla lista.",
   "players.kicked": "{name} cacciato.",
   "players.kickReason": "Cacciato dall'amministratore",
-
   "backups.title": "Backup",
   "backups.subtitle": "Salva il tuo mondo prima che succeda un guaio.",
   "backups.create": "Crea backup",
@@ -168,7 +160,6 @@
   "backups.created": "Backup creato ({size}).",
   "backups.restoring": "Ripristino del backup",
   "backups.restored": "Backup ripristinato.",
-
   "settings.title": "Impostazioni",
   "settings.subtitle": "Server, memoria, accesso e opzioni di gioco.",
   "settings.save": "Salva le modifiche",
@@ -212,7 +203,6 @@
   "settings.restartTask": "Riavvia tutti i giorni",
   "settings.restartTime": "Orario",
   "settings.nextRestart": "Prossimo riavvio: {when}",
-
   "access.title": "Come si collegano i tuoi amici",
   "access.intro": "Scegli come gli altri arrivano al tuo PC. Puoi cambiare quando vuoi.",
   "access.tunnel": "Tunnel (ngrok)",
@@ -259,7 +249,6 @@
   "access.firewallFailed": "Non è stato possibile creare la regola. Puoi aggiungerla a mano nel Firewall di Windows.",
   "access.lanSection": "Rete locale",
   "access.lanIntro": "Chiunque sia nella tua rete può entrare con l'indirizzo qui sotto. Non serve altro.",
-
   "console.title": "Console",
   "console.subtitle": "Tutto quello che succede sul server, in diretta.",
   "console.filter": "Filtra",
@@ -267,7 +256,6 @@
   "console.send": "Invia",
   "console.placeholder": "say Ciao a tutti",
   "console.tunnelPrefix": "tunnel",
-
   "wizard.step": "Passo {n} di {total}",
   "wizard.next": "Continua",
   "wizard.back": "Indietro",
@@ -290,7 +278,6 @@
   "wizard.needVersion": "Scegli una versione.",
   "wizard.installing": "Installazione del server",
   "wizard.ready": "Server pronto.",
-
   "tour.skip": "Salta",
   "tour.next": "Avanti",
   "tour.done": "Ho capito",
@@ -308,7 +295,6 @@
   "tour.backupText": "Prima di installare mod o di mettere mano al mondo, salvane una copia. Un clic e torna com'era.",
   "tour.serversTitle": "Tutti i tuoi server",
   "tour.serversText": "Puoi tenerne diversi qui e passare dall'uno all'altro quando ti pare.",
-
   "common.cancel": "Annulla",
   "common.continue": "Continua",
   "common.delete": "Elimina",
@@ -323,5 +309,8 @@
   "common.copied": "Copiato.",
   "common.folder": "Cartella",
   "common.versionsFailed": "Non è stato possibile caricare la lista delle versioni.",
-  "common.noVersions": "Nessuna versione disponibile"
+  "common.noVersions": "Nessuna versione disponibile",
+  "versions.showBeta": "Mostra versioni beta",
+  "versions.betaTag": "beta",
+  "versions.betaHint": "Le beta non sono finite e possono rovinare il tuo mondo. Scegline una solo se un mod la richiede."
 }

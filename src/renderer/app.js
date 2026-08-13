@@ -886,8 +886,7 @@ async function loadPlatformVersions() {
   sel.innerHTML = `<option>${t('common.loading')}</option>`;
   sel.disabled = true;
 
-  const platform = S.meta.platforms.find((p) => p.id === platformId);
-  $('platformHint').textContent = platform?.blurb || '';
+  renderBetaHint();
 
   try {
     const versions = await api.installer.versions(platformId);
@@ -899,10 +898,18 @@ async function loadPlatformVersions() {
   }
 }
 
-/** Fills a version dropdown, newest first and grouped by Minecraft family. */
+/**
+ * Fills a version dropdown, newest first and grouped by Minecraft family.
+ * Beta builds are hidden unless the user asks for them, since picking one by
+ * accident is a real way to end up with a broken world.
+ */
 function fillVersions(sel, versions) {
+  const previous = sel.value;
+  const showBeta = !!S.settings.showBetaVersions;
+  const shown = showBeta ? versions : versions.filter((v) => !v.prerelease);
+
   sel.innerHTML = '';
-  if (!versions.length) {
+  if (!shown.length) {
     sel.innerHTML = `<option>${t('common.noVersions')}</option>`;
     return;
   }
@@ -910,7 +917,7 @@ function fillVersions(sel, versions) {
   let group = null;
   let currentFamily = null;
 
-  for (const v of versions) {
+  for (const v of shown) {
     const parts = String(v.minecraft).split('.');
     // Historic versions group as 1.21.x; the year-based ones group by year.
     const family = parts[0] === '1' ? parts.slice(0, 2).join('.') : parts[0];
@@ -924,13 +931,33 @@ function fillVersions(sel, versions) {
     const opt = document.createElement('option');
     opt.value = JSON.stringify({ minecraft: v.minecraft, build: v.build });
     opt.textContent = v.prerelease
-      ? `Minecraft ${v.minecraft} · beta`
+      ? `Minecraft ${v.minecraft} · ${t('versions.betaTag')}`
       : `Minecraft ${v.minecraft}`;
+    if (v.prerelease) opt.className = 'opt-beta';
     group.append(opt);
   }
+
+  // Keep the previous pick when it survives the filter.
+  if (previous && [...sel.options].some((o) => o.value === previous)) sel.value = previous;
 }
 
 $('selPlatform').addEventListener('change', loadPlatformVersions);
+
+$('cfgShowBeta').addEventListener('change', async (e) => {
+  S.settings = await api.settings.set({ showBetaVersions: e.target.checked });
+  renderBetaHint();
+  loadPlatformVersions();
+});
+
+/** Warns only while betas are actually on offer. */
+function renderBetaHint() {
+  const hint = $('platformHint');
+  const platform = S.meta.platforms?.find((p) => p.id === $('selPlatform').value);
+  hint.textContent = S.settings.showBetaVersions
+    ? t('versions.betaHint')
+    : (platform?.blurb || '');
+  hint.style.color = S.settings.showBetaVersions ? 'var(--warn)' : '';
+}
 
 $('inpServerName').addEventListener('change', async (e) => {
   const name = e.target.value.trim();
@@ -1440,17 +1467,43 @@ const wizard = {
     if (kind === 'version') {
       $('wzTitle').textContent = t('wizard.versionTitle');
       $('wzText').textContent = t('wizard.versionText');
+
       const sel = document.createElement('select');
       sel.innerHTML = `<option>${t('common.loading')}</option>`;
       content.append(sel);
+
+      const toggle = el('label', 'check-row');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = !!S.settings.showBetaVersions;
+      toggle.append(box, el('span', null, t('versions.showBeta')));
+
+      const warn = el('small', 't-caption');
+      warn.style.color = 'var(--warn)';
+      warn.textContent = box.checked ? t('versions.betaHint') : '';
+      content.append(toggle, warn);
+
+      const pick = () => {
+        try { this.data.version = JSON.parse(sel.value); } catch (_) { this.data.version = null; }
+      };
+
+      let all = [];
       try {
-        const versions = await api.installer.versions(this.data.platform);
-        fillVersions(sel, versions);
-        this.data.version = JSON.parse(sel.value);
-        sel.addEventListener('change', () => { this.data.version = JSON.parse(sel.value); });
+        all = await api.installer.versions(this.data.platform);
+        fillVersions(sel, all);
+        pick();
       } catch (_) {
         sel.innerHTML = `<option>${t('common.offline')}</option>`;
       }
+
+      sel.addEventListener('change', pick);
+      box.addEventListener('change', async () => {
+        S.settings = await api.settings.set({ showBetaVersions: box.checked });
+        warn.textContent = box.checked ? t('versions.betaHint') : '';
+        $('cfgShowBeta').checked = box.checked;
+        fillVersions(sel, all);
+        pick();
+      });
     }
 
     if (kind === 'access') {
@@ -1714,6 +1767,7 @@ async function init() {
   }
 
   $('ramRange').max = String(S.meta.totalRamGb || 8);
+  $('cfgShowBeta').checked = !!S.settings.showBetaVersions;
 
   for (const entry of await api.server.recentLog()) addLog(entry);
 

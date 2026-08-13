@@ -1,6 +1,5 @@
 {
   "app.tagline": "Local servers",
-
   "nav.panel": "Dashboard",
   "nav.world": "World",
   "nav.mods": "Mods",
@@ -9,12 +8,10 @@
   "nav.backups": "Backups",
   "nav.settings": "Settings",
   "nav.console": "Console",
-
   "status.stopped": "Offline",
   "status.starting": "Starting",
   "status.running": "Online",
   "status.stopping": "Stopping",
-
   "servers.title": "Your servers",
   "servers.subtitle": "Pick one to manage, or create another.",
   "servers.new": "New server",
@@ -30,7 +27,6 @@
   "servers.manage": "Servers",
   "servers.renameTitle": "Rename server",
   "servers.created": "Server created.",
-
   "panel.title": "Dashboard",
   "panel.subtitle": "Start the server and share the address.",
   "panel.folder": "Folder",
@@ -56,7 +52,6 @@
   "panel.tunnelLive": "Live",
   "panel.tunnelOpening": "Opening",
   "panel.tunnelNone": "No tunnel",
-
   "world.title": "World",
   "world.subtitle": "Your worlds, game rules and datapacks.",
   "world.import": "Import",
@@ -83,7 +78,6 @@
   "world.datapacksAdded": "{n} datapack(s) added. Restart to apply.",
   "world.datapackDeleteTitle": "Delete datapack",
   "world.datapackDeleteText": "{name} will be removed.",
-
   "mods.title": "Mods",
   "mods.titlePlugins": "Plugins",
   "mods.subtitle": "Your friends need the same mods to join.",
@@ -122,7 +116,6 @@
   "mods.installedOk": "{name} installed.",
   "mods.installedDeps": "{name} installed, with {n} dependency(ies).",
   "mods.onlyJar": "Only {ext} files are accepted",
-
   "players.title": "Players",
   "players.subtitle": "Operators, whitelist and bans.",
   "players.tabOps": "Operators",
@@ -146,7 +139,6 @@
   "players.removed": "{name} removed from the list.",
   "players.kicked": "{name} kicked.",
   "players.kickReason": "Kicked by the administrator",
-
   "backups.title": "Backups",
   "backups.subtitle": "Save your world before something goes wrong.",
   "backups.create": "Create backup",
@@ -168,7 +160,6 @@
   "backups.created": "Backup created ({size}).",
   "backups.restoring": "Restoring backup",
   "backups.restored": "Backup restored.",
-
   "settings.title": "Settings",
   "settings.subtitle": "Server, memory, access and game options.",
   "settings.save": "Save changes",
@@ -212,7 +203,6 @@
   "settings.restartTask": "Restart every day",
   "settings.restartTime": "Time",
   "settings.nextRestart": "Next restart: {when}",
-
   "access.title": "How your friends connect",
   "access.intro": "Choose how people reach your PC. You can change this at any time.",
   "access.tunnel": "Tunnel (ngrok)",
@@ -259,7 +249,6 @@
   "access.firewallFailed": "Could not add the rule. You can add it by hand in Windows Firewall.",
   "access.lanSection": "Local network",
   "access.lanIntro": "Anyone on your own network can join with the address below. Nothing else to set up.",
-
   "console.title": "Console",
   "console.subtitle": "Everything happening on the server, live.",
   "console.filter": "Filter",
@@ -267,7 +256,6 @@
   "console.send": "Send",
   "console.placeholder": "say Hello everyone",
   "console.tunnelPrefix": "tunnel",
-
   "wizard.step": "Step {n} of {total}",
   "wizard.next": "Continue",
   "wizard.back": "Back",
@@ -290,7 +278,6 @@
   "wizard.needVersion": "Choose a version.",
   "wizard.installing": "Installing the server",
   "wizard.ready": "Server ready.",
-
   "tour.skip": "Skip",
   "tour.next": "Next",
   "tour.done": "Got it",
@@ -308,7 +295,6 @@
   "tour.backupText": "Before installing mods or changing the world, save a copy. One click restores it.",
   "tour.serversTitle": "All your servers",
   "tour.serversText": "You can keep several here and switch between them whenever you like.",
-
   "common.cancel": "Cancel",
   "common.continue": "Continue",
   "common.delete": "Delete",
@@ -323,5 +309,8 @@
   "common.copied": "Copied.",
   "common.folder": "Folder",
   "common.versionsFailed": "Could not load the version list.",
-  "common.noVersions": "No versions available"
+  "common.noVersions": "No versions available",
+  "versions.showBeta": "Show beta versions",
+  "versions.betaTag": "beta",
+  "versions.betaHint": "Betas are unfinished and may break your world. Only pick one if a mod needs it."
 }

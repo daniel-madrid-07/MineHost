@@ -772,3 +772,41 @@ input[type="range"]:active::-webkit-slider-thumb { cursor: grabbing; transform: 
 
 /* Update / port hints share the inline status treatment. */
 #updateHint, #portHint { white-space: nowrap; }
+
+/* ------------------------------- Checkbox --------------------------------- */
+
+.check-row {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 8px;
+  font-size: 12px; color: var(--ink-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.check-row:hover { color: var(--ink); }
+
+.check-row input {
+  appearance: none;
+  width: 15px; height: 15px;
+  flex-shrink: 0;
+  margin: 0;
+  background: var(--canvas);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-chip);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.check-row input:hover { border-color: var(--ink-subtle); }
+.check-row input:checked { background: var(--accent-soft); border-color: var(--accent-border); }
+.check-row input:checked::after {
+  content: '';
+  position: absolute; left: 4px; top: 1px;
+  width: 4px; height: 8px;
+  border: solid var(--accent);
+  border-width: 0 1.6px 1.6px 0;
+  transform: rotate(42deg);
+}
+.check-row input:focus-visible { outline: 2px solid var(--accent-border); outline-offset: 2px; }
+
+/* A beta option should read as a caution, not as a normal choice. */
+.opt-beta { color: var(--warn); }
