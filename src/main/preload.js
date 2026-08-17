@@ -40,6 +40,18 @@ contextBridge.exposeInMainWorld('mh', {
     check: invoke('app:checkUpdate'),
   },
 
+  files: {
+    list: invoke('files:list'),
+    read: invoke('files:read'),
+    write: (rel, content) => ipcRenderer.invoke('files:write', { rel, content }),
+    remove: invoke('files:remove'),
+    rename: (rel, name) => ipcRenderer.invoke('files:rename', { rel, name }),
+    newFolder: (rel, name) => ipcRenderer.invoke('files:newFolder', { rel, name }),
+    upload: (rel, files) => ipcRenderer.invoke('files:upload', { rel, files }),
+    reveal: invoke('files:reveal'),
+    pickAny: invoke('dialog:pickAny'),
+  },
+
   network: {
     summary: invoke('network:summary'),
     testPort: invoke('network:testPort'),
@@ -72,7 +84,9 @@ contextBridge.exposeInMainWorld('mh', {
     command: invoke('server:command'),
     state: invoke('server:state'),
     recentLog: invoke('server:recentLog'),
+    recentEvents: invoke('server:recentEvents'),
     onLog: on('server:log'),
+    onEvent: on('server:event'),
     onState: on('server:state'),
     onStats: on('server:stats'),
     onCrash: on('server:crash'),

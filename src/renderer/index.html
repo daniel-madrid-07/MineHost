@@ -101,6 +101,17 @@
       <path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
       <path d="M13.6 2.2v3.2h-3.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
+    <symbol id="i-pulse" viewBox="0 0 16 16">
+      <path d="M1.6 8h3l1.6-4.4 2.4 8.8L10.8 8h3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-files" viewBox="0 0 16 16">
+      <path d="M3.4 1.9h4.4l1.6 1.8h3.2c.6 0 1 .5 1 1v8.4c0 .6-.4 1-1 1H3.4c-.6 0-1-.4-1-1V2.9c0-.6.4-1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M5.2 7.4h5.6M5.2 10h3.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 16 16">
+      <path d="M4 1.9h5l3 3v9.2c0 .5-.4.9-.9.9H4c-.5 0-.9-.4-.9-.9V2.8c0-.5.4-.9.9-.9Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M9 1.9v3h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+    </symbol>
     <symbol id="i-warn" viewBox="0 0 16 16">
       <path d="M8 2.6 14.2 13H1.8L8 2.6Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M8 6.6v3M8 11.4h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
@@ -136,6 +147,8 @@
       <button class="nav-item" data-view="jugadores"><svg class="ic"><use href="#i-players"/></svg><span data-i18n="nav.players">Players</span></button>
       <button class="nav-item" data-view="copias"><svg class="ic"><use href="#i-backup"/></svg><span data-i18n="nav.backups">Backups</span></button>
       <button class="nav-item" data-view="ajustes"><svg class="ic"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
+      <button class="nav-item" data-view="actividad"><svg class="ic"><use href="#i-pulse"/></svg><span data-i18n="nav.events">Activity</span></button>
+      <button class="nav-item" data-view="archivos"><svg class="ic"><use href="#i-files"/></svg><span data-i18n="nav.files">Files</span></button>
       <button class="nav-item" data-view="consola"><svg class="ic"><use href="#i-console"/></svg><span data-i18n="nav.console">Console</span></button>
     </nav>
 
@@ -619,6 +632,74 @@
             <small class="t-caption ink-subtle" id="nextRestartHint"></small>
           </div>
         </article>
+      </div>
+    </section>
+
+    <!-- =========================== ACTIVIDAD ============================ -->
+    <section class="view" id="view-actividad">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1" data-i18n="events.title">Activity</h1>
+          <p class="t-sm ink-muted" data-i18n="events.subtitle">The moments that matter, as they happen.</p>
+        </div>
+        <div class="vhead-actions">
+          <button class="btn btn-quiet" id="btnClearEvents" data-i18n="events.clear">Clear</button>
+        </div>
+      </header>
+
+      <div class="chips" id="eventFilters">
+        <button class="chip active" data-filter="all" data-i18n="events.filterAll">Everything</button>
+        <button class="chip" data-filter="players" data-i18n="events.filterPlayers">Players</button>
+        <button class="chip" data-filter="progress" data-i18n="events.filterProgress">Progress</button>
+        <button class="chip" data-filter="chat" data-i18n="events.filterChat">Chat</button>
+        <button class="chip" data-filter="server" data-i18n="events.filterServer">Server</button>
+      </div>
+
+      <div class="feed" id="eventFeed" role="log" aria-live="polite"></div>
+    </section>
+
+    <!-- ============================ ARCHIVOS ============================ -->
+    <section class="view" id="view-archivos">
+      <header class="vhead">
+        <div>
+          <h1 class="t-h1" data-i18n="files.title">Files</h1>
+          <p class="t-sm ink-muted" data-i18n="files.subtitle">Browse the server folder and edit its config files.</p>
+        </div>
+        <div class="vhead-actions">
+          <button class="btn btn-quiet" id="btnFileReveal">
+            <svg class="ic"><use href="#i-folder"/></svg><span data-i18n="files.open">Open folder</span>
+          </button>
+          <button class="btn btn-quiet" id="btnNewFolder">
+            <svg class="ic"><use href="#i-plus"/></svg><span data-i18n="files.newFolder">New folder</span>
+          </button>
+          <button class="btn btn-primary" id="btnFileUpload">
+            <svg class="ic"><use href="#i-plus"/></svg><span data-i18n="files.upload">Add files</span>
+          </button>
+        </div>
+      </header>
+
+      <nav class="crumbs" id="fileCrumbs"></nav>
+
+      <div id="fileBrowser">
+        <div class="dropzone dropzone-sm" id="fileDrop">
+          <span class="t-sm ink-subtle" data-i18n="files.emptyHint">Drop files here to add them.</span>
+        </div>
+        <div id="fileList" class="rows"></div>
+      </div>
+
+      <div id="fileEditor" hidden>
+        <div class="editor-head">
+          <div class="editor-title">
+            <svg class="ic ink-subtle"><use href="#i-file"/></svg>
+            <b class="t-title" id="editorName"></b>
+            <span class="badge-mini" id="editorDirty" hidden data-i18n="files.unsaved">Unsaved</span>
+          </div>
+          <div class="row-inline">
+            <button class="btn btn-quiet" id="btnEditorClose" data-i18n="common.cancel">Cancel</button>
+            <button class="btn btn-primary" id="btnEditorSave" data-i18n="files.save">Save</button>
+          </div>
+        </div>
+        <textarea id="editorArea" class="editor t-mono" spellcheck="false"></textarea>
       </div>
     </section>
 

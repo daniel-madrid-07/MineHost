@@ -32,6 +32,7 @@ const S = {
   players: { ops: [], whitelist: [], bans: [], ipBans: [] },
   strings: {},
   lang: 'en',
+  events: [],
 };
 
 /* ------------------------------ Localisation ------------------------------ */
@@ -151,6 +152,8 @@ function go(view) {
   if (view === 'jugadores') refreshPlayers();
   if (view === 'copias') refreshBackups();
   if (view === 'mundo') refreshWorlds();
+  if (view === 'archivos') openFolder(S.filePath);
+  if (view === 'actividad') renderEventFeed(S.events);
 }
 
 $('nav').addEventListener('click', (e) => {
@@ -448,6 +451,7 @@ $('btnAddJars').addEventListener('click', async () => {
 });
 $('btnOpenMods').addEventListener('click', () => api.mods.openFolder());
 
+/** `exts` may be null to accept any file, as the file browser does. */
 function wireDrop(zone, exts, onFiles) {
   ['dragenter', 'dragover'].forEach((ev) =>
     zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('over'); }));
@@ -456,8 +460,10 @@ function wireDrop(zone, exts, onFiles) {
   zone.addEventListener('drop', (e) => {
     const paths = [...e.dataTransfer.files]
       .map((f) => api.pathForFile(f))
-      .filter((p) => p && exts.some((x) => p.toLowerCase().endsWith(x)));
-    if (!paths.length) return toast(t('mods.onlyJar', { ext: exts.join(', ') }), 'warn');
+      .filter((p) => p && (!exts || exts.some((x) => p.toLowerCase().endsWith(x))));
+    if (!paths.length) {
+      return toast(exts ? t('mods.onlyJar', { ext: exts.join(', ') }) : t('files.badName'), 'warn');
+    }
     onFiles(paths);
   });
 }
@@ -1350,6 +1356,8 @@ function redrawDynamic() {
   if (S.view === 'contenido') refreshMods();
   if (S.view === 'jugadores') renderPlayers();
   if (S.view === 'copias') refreshBackups();
+  if (S.view === 'actividad') renderEventFeed(S.events);
+  if (S.view === 'archivos') openFolder(S.filePath);
   if (S.view === 'mundo') refreshWorlds();
   if (document.querySelector('#tab-opciones.active')) renderProps();
 }
@@ -1384,6 +1392,266 @@ $('btnCheckUpdate').addEventListener('click', async () => {
   link.addEventListener('click', () => api.shell.openExternal(r.url));
   hint.append(link);
   hint.style.color = 'var(--warn)';
+});
+
+
+/* ------------------------------ Activity feed ----------------------------- */
+
+/* Which chip shows which kinds. */
+const EVENT_GROUPS = {
+  players: ['join', 'leave', 'death', 'op', 'deop', 'ban', 'kick', 'whitelistAdd', 'whitelistRemove'],
+  progress: ['advancement', 'challenge', 'goal', 'sleep'],
+  chat: ['chat', 'me'],
+  server: ['ready', 'stopping', 'saved', 'overloaded', 'worldPrepared', 'error'],
+};
+
+S.eventFilter = 'all';
+
+const eventVisible = (kind) =>
+  S.eventFilter === 'all' || (EVENT_GROUPS[S.eventFilter] || []).includes(kind);
+
+/** Renders one event as a line of plain language rather than a log entry. */
+function eventLine(e) {
+  const row = el('div', `ev ${e.kind}`);
+  if (!eventVisible(e.kind)) row.hidden = true;
+
+  row.append(el('span', 'ev-time', new Date(e.ts).toLocaleTimeString(S.lang, {
+    hour: '2-digit', minute: '2-digit',
+  })));
+  row.append(el('i', 'ev-mark'));
+
+  const body = el('div', 'ev-body');
+
+  if (e.kind === 'chat' || e.kind === 'me') {
+    body.append(el('b', null, e.player), el('span', null, ` ${e.text}`));
+  } else if (e.kind === 'death') {
+    // The server already writes a colourful sentence; keep it verbatim.
+    body.append(el('span', null, e.text));
+  } else if (['advancement', 'challenge', 'goal'].includes(e.kind)) {
+    const parts = t(`events.${e.kind}`, { player: '\u0000', text: '\u0001' }).split(/[\u0000\u0001]/);
+    body.append(
+      el('span', null, parts[0] || ''),
+      el('b', null, e.player),
+      el('span', null, parts[1] || ' '),
+      el('b', null, e.text),
+      el('span', null, parts[2] || '')
+    );
+  } else {
+    const key = `events.${e.kind}`;
+    const text = t(key, { player: e.player || '', ms: e.ms || 0 });
+    body.append(el('span', null, text === key ? e.text : text));
+  }
+
+  row.append(body);
+  return row;
+}
+
+function addEvent(e) {
+  const feed = $('eventFeed');
+  const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
+
+  // Drop the empty state the first time something arrives.
+  const empty = feed.querySelector('.empty');
+  if (empty) feed.innerHTML = '';
+
+  feed.append(eventLine(e));
+  while (feed.childElementCount > 400) feed.firstElementChild.remove();
+  if (atBottom) feed.scrollTop = feed.scrollHeight;
+}
+
+function renderEventFeed(list) {
+  const feed = $('eventFeed');
+  feed.innerHTML = '';
+  if (!list.length) {
+    emptyState(feed, 'pulse', t('events.empty'), t('events.emptyHint'));
+    return;
+  }
+  for (const e of list) feed.append(eventLine(e));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+api.server.onEvent((e) => {
+  S.events.push(e);
+  if (S.events.length > 400) S.events.shift();
+  addEvent(e);
+});
+
+$('eventFilters').addEventListener('click', (ev) => {
+  const chip = ev.target.closest('.chip');
+  if (!chip) return;
+  S.eventFilter = chip.dataset.filter;
+  $('eventFilters').querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+  renderEventFeed(S.events);
+});
+
+$('btnClearEvents').addEventListener('click', () => {
+  S.events = [];
+  renderEventFeed([]);
+});
+
+/* ------------------------------ File browser ------------------------------ */
+
+S.filePath = '';
+S.editing = null;
+
+function renderCrumbs() {
+  const box = $('fileCrumbs');
+  box.innerHTML = '';
+
+  const parts = S.filePath ? S.filePath.split('/').filter(Boolean) : [];
+
+  const root = el('button', `crumb ${parts.length ? '' : 'current'}`, t('files.root'));
+  root.addEventListener('click', () => openFolder(''));
+  box.append(root);
+
+  parts.forEach((part, i) => {
+    box.append(el('span', 'crumb-sep', '/'));
+    const isLast = i === parts.length - 1;
+    const crumb = el('button', `crumb ${isLast ? 'current' : ''}`, part);
+    if (!isLast) {
+      const target = parts.slice(0, i + 1).join('/');
+      crumb.addEventListener('click', () => openFolder(target));
+    }
+    box.append(crumb);
+  });
+}
+
+async function openFolder(rel) {
+  closeEditor(true);
+  const res = await api.files.list(rel);
+  if (!res.ok) return toast(t('files.notEditable'), 'error');
+
+  S.filePath = res.path;
+  renderCrumbs();
+
+  const box = $('fileList');
+  box.innerHTML = '';
+
+  if (!res.entries.length) {
+    emptyState(box, 'files', t('files.empty'), t('files.emptyHint'));
+    return;
+  }
+
+  for (const entry of res.entries) {
+    const row = el('div', `row row-file ${entry.isFolder ? 'is-folder' : ''}`);
+    row.append(icon(entry.isFolder ? 'folder' : 'file'));
+
+    const main = el('div', 'row-main');
+    main.append(el('span', 'row-title', entry.name));
+    main.append(el('span', 'row-sub',
+      entry.isFolder ? t('files.folder') : `${fmtSize(entry.size)} · ${fmtDate(entry.modified)}`));
+    row.append(main);
+
+    const actions = el('div', 'row-actions');
+    const full = S.filePath ? `${S.filePath}/${entry.name}` : entry.name;
+
+    if (entry.isFolder) {
+      row.addEventListener('click', () => openFolder(full));
+    } else if (entry.editable) {
+      const edit = el('button', 'btn btn-quiet btn-sm', t('files.edit'));
+      edit.addEventListener('click', (ev) => { ev.stopPropagation(); openEditor(full, entry.name); });
+      actions.append(edit);
+    }
+
+    const ren = el('button', 'btn btn-quiet btn-sm', t('files.rename'));
+    ren.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const name = await promptText(t('files.renameTitle'), entry.name);
+      if (!name || name === entry.name) return;
+      const r = await api.files.rename(full, name);
+      if (r.ok) openFolder(S.filePath);
+      else toast(t(r.error === 'EXISTS' ? 'files.exists' : 'files.badName'), 'error');
+    });
+
+    const del = el('button', 'btn btn-quiet btn-sm btn-icon');
+    del.title = t('files.delete');
+    del.append(icon('trash'));
+    del.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      if (!await confirmAsk(t('files.deleteTitle'),
+        t('files.deleteText', { name: entry.name }), t('common.delete'))) return;
+      await api.files.remove(full);
+      openFolder(S.filePath);
+    });
+
+    actions.append(ren, del);
+    row.append(actions);
+    box.append(row);
+  }
+}
+
+async function openEditor(rel, name) {
+  const res = await api.files.read(rel);
+  if (!res.ok) {
+    const key = res.error === 'TOO_BIG' ? 'files.tooBig' : 'files.notEditable';
+    return toast(t(key), 'warn');
+  }
+
+  S.editing = { rel, name, original: res.content };
+  $('editorName').textContent = name;
+  $('editorArea').value = res.content;
+  $('editorDirty').hidden = true;
+  $('fileBrowser').hidden = true;
+  $('fileCrumbs').hidden = true;
+  $('fileEditor').hidden = false;
+  $('editorArea').focus();
+}
+
+function closeEditor(silent = false) {
+  if (!S.editing) return true;
+  if (!silent && $('editorArea').value !== S.editing.original) {
+    // Leave the guard to the explicit close button; folder navigation is safe
+    // because it only happens from the browser, which is hidden while editing.
+  }
+  S.editing = null;
+  $('fileEditor').hidden = true;
+  $('fileBrowser').hidden = false;
+  $('fileCrumbs').hidden = false;
+  return true;
+}
+
+$('editorArea').addEventListener('input', () => {
+  if (!S.editing) return;
+  $('editorDirty').hidden = $('editorArea').value === S.editing.original;
+});
+
+$('btnEditorSave').addEventListener('click', async () => {
+  if (!S.editing) return;
+  const r = await api.files.write(S.editing.rel, $('editorArea').value);
+  if (!r.ok) return toast(t('files.notEditable'), 'error');
+  toast(t('files.saved'));
+  S.editing.original = $('editorArea').value;
+  $('editorDirty').hidden = true;
+});
+
+$('btnEditorClose').addEventListener('click', async () => {
+  if (S.editing && $('editorArea').value !== S.editing.original) {
+    if (!await confirmAsk(t('files.unsaved'), t('files.editing', { name: S.editing.name }),
+      t('common.continue'))) return;
+  }
+  closeEditor(true);
+});
+
+$('btnNewFolder').addEventListener('click', async () => {
+  const name = await promptText(t('files.newFolderTitle'), '');
+  if (!name) return;
+  const r = await api.files.newFolder(S.filePath, name);
+  if (r.ok) openFolder(S.filePath);
+  else toast(t(r.error === 'EXISTS' ? 'files.exists' : 'files.badName'), 'error');
+});
+
+$('btnFileUpload').addEventListener('click', async () => {
+  const files = await api.files.pickAny();
+  if (!files.length) return;
+  const r = await api.files.upload(S.filePath, files);
+  if (r.ok) { toast(t('files.uploaded', { n: r.added })); openFolder(S.filePath); }
+});
+
+$('btnFileReveal').addEventListener('click', () => api.files.reveal(S.filePath));
+
+wireDrop($('fileDrop'), null, async (paths) => {
+  const r = await api.files.upload(S.filePath, paths);
+  if (r.ok) { toast(t('files.uploaded', { n: r.added })); openFolder(S.filePath); }
 });
 
 /* --------------------------------- Wizard --------------------------------- */
@@ -1770,6 +2038,8 @@ async function init() {
   $('cfgShowBeta').checked = !!S.settings.showBetaVersions;
 
   for (const entry of await api.server.recentLog()) addLog(entry);
+  S.events = await api.server.recentEvents();
+  renderEventFeed(S.events);
 
   await reloadActive();
   loadPlatformVersions();

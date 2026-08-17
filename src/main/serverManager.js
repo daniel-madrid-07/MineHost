@@ -3,6 +3,8 @@ const path = require('path');
 const os = require('os');
 const { spawn, execFile } = require('child_process');
 
+const events = require('./events');
+
 const READY_RE   = /Done \(([\d.]+)s\)!/i;
 const JOIN_RE    = /:\s*([A-Za-z0-9_]{1,16}) joined the game/i;
 const LEAVE_RE   = /:\s*([A-Za-z0-9_]{1,16}) left the game/i;
@@ -43,11 +45,12 @@ function jvmFlags(ramGb) {
 }
 
 class ServerManager {
-  constructor({ onLog, onState, onStats, onCrash }) {
+  constructor({ onLog, onState, onStats, onCrash, onEvent }) {
     this.onLog = onLog;
     this.onState = onState;
     this.onStats = onStats;
     this.onCrash = onCrash;
+    this.onEvent = onEvent;
 
     this.proc = null;
     this.status = 'stopped'; // stopped | starting | running | stopping
@@ -59,6 +62,7 @@ class ServerManager {
     this.statsTimer = null;
     this.saveWaiters = [];
     this.logBuffer = [];
+    this.eventBuffer = [];
   }
 
   getState() {
@@ -81,10 +85,24 @@ class ServerManager {
     this.logBuffer.push(entry);
     if (this.logBuffer.length > 400) this.logBuffer.shift();
     this.onLog?.(entry);
+
+    // Commands we sent ourselves are not "moments"; everything else may be.
+    if (level === 'command') return;
+    const event = events.parse(line, level);
+    if (!event) return;
+
+    const record = { ...event, ts: entry.ts };
+    this.eventBuffer.push(record);
+    if (this.eventBuffer.length > 300) this.eventBuffer.shift();
+    this.onEvent?.(record);
   }
 
   getRecentLog() {
     return [...this.logBuffer];
+  }
+
+  getRecentEvents() {
+    return [...this.eventBuffer];
   }
 
   /** Resolves once the server confirms the world has been flushed to disk. */

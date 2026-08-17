@@ -1,13 +1,13 @@
 {
   "name": "minehost",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Crea y gestiona servidores de Minecraft en tu propio PC, sin tocar el router.",
   "main": "src/main/main.js",
   "author": "Daniel",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --dir && node scripts/stamp-icon.js && electron-builder --win --prepackaged release/win-unpacked"
+    "dist": "electron-builder --win --dir && node scripts/stamp-icon.js && node scripts/trim-build.js && electron-builder --win --prepackaged release/win-unpacked"
   },
   "devDependencies": {
     "electron": "^33.2.0",
