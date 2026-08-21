@@ -956,3 +956,29 @@ input[type="range"]:active::-webkit-slider-thumb { cursor: grabbing; transform: 
   user-select: text;
 }
 .editor:focus { border-color: var(--accent-border); outline: none; }
+
+/* ------------------------------- Performance ------------------------------ */
+
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-5);
+}
+@media (max-width: 1180px) { .perf-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.perf-stat { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.perf-label { font-size: 11.5px; color: var(--ink-subtle); }
+.perf-value { font-size: 17px; font-weight: 550; letter-spacing: -0.3px; line-height: 1.1; }
+.perf-value.warn { color: var(--warn); }
+.perf-value.hot  { color: var(--danger); }
+.perf-value.unknown { font-size: 13px; font-weight: 450; color: var(--ink-disabled); }
+
+/* A sparkline reads faster than a full chart for "is it steady or not". */
+.spark-wrap {
+  margin-top: var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.spark { width: 100%; height: 48px; display: block; }
+.spark path { transition: d var(--dur-slow) var(--ease-out); }

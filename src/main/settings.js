@@ -13,6 +13,9 @@ const APP_DEFAULTS = {
   windowBounds: null,
   lastUpdateCheck: 0,
   showBetaVersions: false,
+  minimiseToTray: false,
+  wakeOnDemand: false,
+  wakeIdleMinutes: 10,
 };
 
 /** A server entry. `exposure` decides between the tunnel and port forwarding. */

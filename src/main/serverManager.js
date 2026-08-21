@@ -13,6 +13,11 @@ const SAVED_RE   = /Saved the game|ThreadedAnvilChunkStorage.*complete|Saving.*c
 const EULA_RE    = /You need to agree to the EULA/i;
 const PORT_RE    = /Perhaps a server is already running|address already in use|FAILED TO BIND/i;
 
+/* Forge-likes answer /forge tps; Paper-likes answer /tps. */
+const TPS_FORGE_RE = /Overall\s*:?\s*Mean tick time:\s*([\d.]+)\s*ms\.?\s*Mean TPS:\s*([\d.]+)/i;
+const TPS_DIM_RE   = /Mean tick time:\s*([\d.]+)\s*ms\.?\s*Mean TPS:\s*([\d.]+)/i;
+const TPS_PAPER_RE = /TPS from last 1m, 5m, 15m:\s*\*?([\d.]+)/i;
+
 /**
  * Aikar's flags: proven G1GC tuning for Minecraft servers. Applied above 4 GB,
  * where the collector actually has room to benefit.
@@ -63,6 +68,11 @@ class ServerManager {
     this.saveWaiters = [];
     this.logBuffer = [];
     this.eventBuffer = [];
+    this.tps = null;
+    this.mspt = null;
+    this.history = [];
+    this.tpsTimer = null;
+    this.tpsProbe = null;
   }
 
   getState() {
@@ -198,6 +208,8 @@ class ServerManager {
           waiters.forEach((w) => w());
         }
 
+        this._readTps(line);
+
         if (EULA_RE.test(line)) this.lastError = 'eula';
         if (PORT_RE.test(line)) this.lastError = 'port';
 
@@ -244,7 +256,12 @@ class ServerManager {
 
   _cleanup() {
     clearInterval(this.statsTimer);
+    clearInterval(this.tpsTimer);
     this.statsTimer = null;
+    this.tpsTimer = null;
+    this.tps = null;
+    this.mspt = null;
+    this.history = [];
     this.proc = null;
     this.players = [];
     this.startedAt = null;
@@ -287,18 +304,71 @@ class ServerManager {
           }
           lastCpu = { cpuMs, at: now };
 
-          this.onStats?.({
+          const sample = {
+            ts: now,
             ramMb: Math.round(ws / 1048576),
             ramPercent: Math.round((ws / 1048576 / totalRamMb) * 100),
             cpuPercent: cpuPercent === null ? null : Math.round(cpuPercent * 10) / 10,
             players: this.players.length,
-          });
+            tps: this.tps,
+            mspt: this.mspt,
+          };
+
+          // Roughly an hour at one sample every three seconds.
+          this.history.push(sample);
+          if (this.history.length > 1200) this.history.shift();
+
+          this.onStats?.(sample);
         }
       );
     };
 
     sample();
     this.statsTimer = setInterval(sample, 3000);
+
+    // The tick-rate command is chatty, so ask far less often than we sample.
+    clearInterval(this.tpsTimer);
+    this.tpsTimer = setInterval(() => this._pollTps(), 15000);
+    setTimeout(() => this._pollTps(), 4000);
+  }
+
+  getHistory() {
+    return [...this.history];
+  }
+
+  /**
+   * Picks TPS out of a console line. Values are capped at 20, the tick rate
+   * Minecraft targets; servers sometimes report marginally above it.
+   */
+  _readTps(line) {
+    const forge = TPS_FORGE_RE.exec(line) || (this.tps === null && TPS_DIM_RE.exec(line));
+    if (forge) {
+      this.mspt = parseFloat(forge[1]);
+      this.tps = Math.min(20, parseFloat(forge[2]));
+      return;
+    }
+    const paper = TPS_PAPER_RE.exec(line);
+    if (paper) {
+      this.tps = Math.min(20, parseFloat(paper[1]));
+      if (this.mspt === null) this.mspt = 1000 / Math.max(1, this.tps);
+    }
+  }
+
+  /**
+   * Asks the server for its tick rate. The command differs by platform, and
+   * silence is fine: vanilla has no such command, so TPS simply stays unknown.
+   */
+  _pollTps() {
+    if (this.status !== 'running' || !this.proc) return;
+    const platform = this.opts?.platform;
+    const cmd = platform === 'paper' || platform === 'purpur' ? 'tps'
+      : platform === 'neoforge' || platform === 'forge' ? 'forge tps'
+      : null;
+    if (!cmd) return;
+
+    try {
+      this.proc.stdin.write(`${cmd}\n`);
+    } catch (_) {}
   }
 
   sendCommand(cmd) {

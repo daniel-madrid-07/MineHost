@@ -17,15 +17,32 @@ const i18n = require('./i18n');
 const updater = require('./updater');
 const network = require('./network');
 const fileManager = require('./fileManager');
+const { TrayController, setAutoLaunch, getAutoLaunch } = require('./tray');
+const WakeOnDemand = require('./wakeOnDemand');
 
 let win = null;
 let server = null;
 let tunnel = null;
 let scheduler = null;
+let tray = null;
+let wake = null;
+let strings = {};
 
 const send = (channel, payload) => {
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
 };
+
+/** Main-process translation, for the tray and the sleeping-server messages. */
+function t(key, vars) {
+  let out = strings[key];
+  if (out == null) return key;
+  if (vars) for (const [k, v] of Object.entries(vars)) out = out.split(`{${k}}`).join(String(v));
+  return out;
+}
+
+function loadStrings() {
+  strings = i18n.bundle(Settings.get('language') || 'en');
+}
 
 /* ------------------------------- Window ---------------------------------- */
 
@@ -85,6 +102,14 @@ function createWindow() {
   win.on('resized', saveBounds);
   win.on('moved', saveBounds);
   win.on('closed', () => { win = null; });
+
+  // With the tray enabled, closing the window leaves the server running.
+  win.on('close', (e) => {
+    if (quitting || !Settings.get('minimiseToTray')) return;
+    e.preventDefault();
+    saveBounds();
+    win.hide();
+  });
 }
 
 /* ------------------------------ Bootstrap -------------------------------- */
@@ -92,9 +117,15 @@ function createWindow() {
 app.whenReady().then(() => {
   Settings.init(app.getPath('userData'));
 
+  loadStrings();
+
   server = new ServerManager({
     onLog: (l) => send('server:log', l),
-    onState: (s) => send('server:state', s),
+    onState: (st) => {
+      send('server:state', st);
+      tray?.refresh();
+      handleIdle(st);
+    },
     onStats: (s) => send('server:stats', s),
     onEvent: (e) => send('server:event', e),
     onCrash: async ({ code, reason }) => {
@@ -126,7 +157,44 @@ app.whenReady().then(() => {
   });
   scheduler.configure(Settings.activeServer()?.schedule || {});
 
+  wake = new WakeOnDemand({
+    onWake: () => startServer(),
+    onLog: (l) => send('server:log', l),
+    getStatus: () => ({
+      sleepingText: t('wake.sleeping'),
+      startingText: t('wake.starting'),
+      wakingText: t('wake.waking'),
+    }),
+  });
+
+  tray = new TrayController({
+    t,
+    getState: () => {
+      const active = Settings.activeServer();
+      const state = server.getState();
+      return {
+        serverName: active?.name || null,
+        status: state.status,
+        players: state.players,
+        address: tunnel.getState().address,
+      };
+    },
+    onShow: () => showWindow(),
+    onStart: () => startServer(),
+    onStop: () => stopServer(),
+    onQuit: () => { quitting = true; app.quit(); },
+    onCopyAddress: (address) => require('electron').clipboard.writeText(address),
+  });
+
+  if (Settings.get('minimiseToTray')) tray.create();
+
   createWindow();
+
+  // Launched by Windows at login we stay out of the way, in the tray.
+  if (process.argv.includes('--hidden') && Settings.get('minimiseToTray')) {
+    win.once('ready-to-show', () => win.hide());
+  }
+  if (Settings.get('wakeOnDemand')) setTimeout(() => armWake(), 1500);
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 
@@ -135,11 +203,15 @@ async function shutdown() {
   if (quitting) return;
   quitting = true;
   scheduler?.stop();
+  tray?.destroy();
+  try { await wake?.stop(); } catch (_) {}
   try { await tunnel?.stop(); } catch (_) {}
   try { await server?.stop({ force: true, save: true }); } catch (_) {}
 }
 
 app.on('window-all-closed', async () => {
+  // With the tray on, the app keeps running without a window.
+  if (Settings.get('minimiseToTray') && !quitting) return;
   await shutdown();
   if (process.platform !== 'darwin') app.quit();
 });
@@ -164,6 +236,9 @@ async function startServer() {
   if (!settings) return { ok: false, error: 'NO_SERVER' };
   if (!info.installed) return { ok: false, error: 'NOT_INSTALLED' };
 
+  // The wake listener owns the port while the server sleeps.
+  if (wake?.listening) await wake.stop();
+
   const javaMajor = Installer.requiredJava(info.minecraft || settings.minecraft || '1.21');
   let javaPath = settings.javaPath;
   if (!javaPath || !fs.existsSync(javaPath)) {
@@ -183,6 +258,64 @@ async function startServer() {
     platformName: platform?.name,
     version: info.version || settings.build,
   });
+}
+
+function showWindow() {
+  if (!win || win.isDestroyed()) return createWindow();
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+/** Holds the port while the server is off, so joining wakes it. */
+async function armWake() {
+  const { settings, info } = currentServer();
+  if (!settings || !Settings.get('wakeOnDemand')) return;
+  if (server.getState().status !== 'stopped') return;
+
+  const res = await wake.listen({
+    port: settings.port || 25565,
+    motd: settings.name,
+    version: info.minecraft || '',
+  });
+  if (!res.ok && res.error !== 'PORT_BUSY') {
+    send('server:log', { line: `Wake-on-demand: ${res.error}`, level: 'error', ts: Date.now() });
+  }
+}
+
+/** Shuts an empty server down once the idle window passes. */
+function handleIdle(state) {
+  if (!Settings.get('wakeOnDemand')) return;
+
+  const minutes = Settings.get('wakeIdleMinutes') || 10;
+  if (state.status === 'running' && state.players.length === 0) {
+    wake.armIdle(minutes, async () => {
+      if (server.getState().players.length) return;
+      send('server:log', {
+        line: 'Nobody around; putting the server to sleep.', level: 'system', ts: Date.now(),
+      });
+      await stopServer();
+    });
+  } else {
+    wake.cancelIdle();
+  }
+}
+
+/** Stops the server, its tunnel, and hands the port back to wake-on-demand. */
+async function stopServer() {
+  const { settings } = currentServer();
+  if (settings?.backupOnStop && server.getState().status === 'running') {
+    const worldsFound = backups.worldFolders(settings.serverPath, 'world');
+    if (worldsFound.length) {
+      send('task:progress', { label: 'backup', percent: 0 });
+      await createBackup({ label: 'auto' });
+      send('task:progress', { label: '', percent: 100, done: true });
+    }
+  }
+  await tunnel.stop();
+  const res = await server.stop({ save: true });
+  if (Settings.get('wakeOnDemand')) setTimeout(() => armWake(), 1200);
+  return res;
 }
 
 async function createBackup({ label = '' } = {}) {
@@ -253,6 +386,9 @@ handle('servers:select', async (id) => {
   await tunnel.stop();
   const next = Settings.setActive(id);
   scheduler.configure(next?.schedule || {});
+  await wake.stop();
+  if (Settings.get('wakeOnDemand')) await armWake();
+  tray?.refresh();
   return { ok: true, server: next };
 });
 
@@ -265,10 +401,42 @@ handle('i18n:bundle', (lang) => {
 
 handle('i18n:set', (lang) => {
   Settings.merge({ language: lang });
+  loadStrings();
+  tray?.refresh();
   return { id: lang, strings: i18n.bundle(lang) };
 });
 
 /* ------------------------------- Updates --------------------------------- */
+
+/* ------------------------------ Tray & wake ------------------------------- */
+
+handle('app:tray', (enabled) => {
+  Settings.merge({ minimiseToTray: enabled });
+  if (enabled) tray.create();
+  else tray.destroy();
+  return { ok: true };
+});
+
+handle('app:autoLaunch', (enabled) => setAutoLaunch(enabled));
+handle('app:autoLaunchState', () => getAutoLaunch());
+
+handle('app:wakeOnDemand', async ({ enabled, idleMinutes }) => {
+  Settings.merge({
+    wakeOnDemand: enabled,
+    wakeIdleMinutes: Math.max(1, idleMinutes || 10),
+  });
+  if (enabled) await armWake();
+  else await wake.stop();
+  return { ok: true, listening: wake.listening };
+});
+
+handle('app:wakeState', () => ({
+  enabled: !!Settings.get('wakeOnDemand'),
+  idleMinutes: Settings.get('wakeIdleMinutes') || 10,
+  listening: wake?.listening || false,
+}));
+
+handle('server:history', () => server.getHistory());
 
 handle('app:checkUpdate', async () => {
   const res = await updater.check(app.getVersion());
@@ -366,19 +534,7 @@ handle('installer:install', async ({ serverId, serverPath, platformId, minecraft
 /* --------------------------------- Server --------------------------------- */
 
 handle('server:start', () => startServer());
-handle('server:stop', async () => {
-  const { settings } = currentServer();
-  if (settings?.backupOnStop && server.getState().status === 'running') {
-    const worldsFound = backups.worldFolders(settings.serverPath, 'world');
-    if (worldsFound.length) {
-      send('task:progress', { label: 'Copia de seguridad antes de cerrar…', percent: 0 });
-      await createBackup({ label: 'auto' });
-      send('task:progress', { label: '', percent: 100, done: true });
-    }
-  }
-  await tunnel.stop();
-  return server.stop({ save: true });
-});
+handle('server:stop', () => stopServer());
 handle('server:restart', async () => {
   await server.stop({ save: true });
   return startServer();

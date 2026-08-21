@@ -40,6 +40,17 @@ contextBridge.exposeInMainWorld('mh', {
     check: invoke('app:checkUpdate'),
   },
 
+  tray: {
+    set: invoke('app:tray'),
+    autoLaunch: invoke('app:autoLaunch'),
+    autoLaunchState: invoke('app:autoLaunchState'),
+  },
+
+  wake: {
+    set: (enabled, idleMinutes) => ipcRenderer.invoke('app:wakeOnDemand', { enabled, idleMinutes }),
+    state: invoke('app:wakeState'),
+  },
+
   files: {
     list: invoke('files:list'),
     read: invoke('files:read'),
@@ -85,6 +96,7 @@ contextBridge.exposeInMainWorld('mh', {
     state: invoke('server:state'),
     recentLog: invoke('server:recentLog'),
     recentEvents: invoke('server:recentEvents'),
+    history: invoke('server:history'),
     onLog: on('server:log'),
     onEvent: on('server:event'),
     onState: on('server:state'),

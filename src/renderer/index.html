@@ -223,6 +223,43 @@
           </article>
         </div>
 
+        <article class="card" id="perfCard">
+          <div class="chead">
+            <h2 class="chead-title" data-i18n="perf.title">Performance</h2>
+            <span class="tag" id="perfVerdict"></span>
+          </div>
+          <div class="perf-grid">
+            <div class="perf-stat">
+              <span class="perf-label" data-i18n="perf.tps">Ticks per second</span>
+              <b class="perf-value num" id="perfTps">—</b>
+              <div class="track"><i id="perfTpsBar"></i></div>
+            </div>
+            <div class="perf-stat">
+              <span class="perf-label" data-i18n="perf.mspt">Time per tick</span>
+              <b class="perf-value num" id="perfMspt">—</b>
+              <div class="track"><i id="perfMsptBar"></i></div>
+            </div>
+            <div class="perf-stat">
+              <span class="perf-label" data-i18n="perf.ram">Memory</span>
+              <b class="perf-value num" id="perfRam">—</b>
+              <div class="track"><i id="perfRamBar"></i></div>
+            </div>
+            <div class="perf-stat">
+              <span class="perf-label" data-i18n="perf.cpu">Processor</span>
+              <b class="perf-value num" id="perfCpu">—</b>
+              <div class="track"><i id="perfCpuBar"></i></div>
+            </div>
+          </div>
+          <div class="spark-wrap">
+            <svg class="spark" id="perfSpark" viewBox="0 0 300 48" preserveAspectRatio="none" aria-hidden="true">
+              <path id="sparkFill" fill="var(--accent-soft)" d=""/>
+              <path id="sparkLine" fill="none" stroke="var(--accent)" stroke-width="1.4"
+                    stroke-linejoin="round" stroke-linecap="round" d=""/>
+            </svg>
+            <span class="t-caption ink-subtle" id="perfWindow"></span>
+          </div>
+        </article>
+
         <article class="card">
           <div class="chead">
             <h2 class="chead-title" data-i18n="panel.playersOnline">Players online</h2>
@@ -458,6 +495,22 @@
             <select id="selLanguage"></select>
           </div>
 
+          <label class="switch-row">
+            <div>
+              <b class="t-body" data-i18n="settings.trayTitle">Keep running in the tray</b>
+              <span class="t-caption ink-subtle" data-i18n="settings.trayHint">Closing the window leaves the server up.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="cfgTray"><i></i></label>
+          </label>
+
+          <label class="switch-row">
+            <div>
+              <b class="t-body" data-i18n="settings.autoLaunch">Start with Windows</b>
+              <span class="t-caption ink-subtle" data-i18n="settings.autoLaunchHint">Opens minimised in the tray.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="cfgAutoLaunch"><i></i></label>
+          </label>
+
           <div class="field">
             <div class="row-inline">
               <button class="btn btn-quiet" id="btnCheckUpdate" data-i18n="settings.checkUpdates">Check for updates</button>
@@ -532,6 +585,25 @@
               </div>
             </li>
           </ol>
+        </article>
+
+        <article class="card" id="wakeCard">
+          <div class="chead"><h2 class="chead-title" data-i18n="wake.section">Start when someone joins</h2></div>
+          <p class="t-body ink-muted card-intro" data-i18n="wake.hint">MineHost holds the port while the server sleeps.</p>
+
+          <label class="switch-row">
+            <div><b class="t-body" data-i18n="wake.enable">Wake the server on demand</b></div>
+            <label class="switch"><input type="checkbox" id="cfgWake"><i></i></label>
+          </label>
+
+          <div class="field">
+            <span class="flabel" data-i18n="wake.idle">Sleep after</span>
+            <div class="row-inline">
+              <input type="number" id="cfgWakeIdle" class="input-sm num" min="1" max="180" style="width:90px" />
+              <span class="t-sm ink-subtle" data-i18n="wake.idleUnit">minutes with nobody online</span>
+            </div>
+            <small class="t-caption" id="wakeHint"></small>
+          </div>
         </article>
 
         <!-- Port forwarding -->
