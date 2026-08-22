@@ -107,6 +107,7 @@ contextBridge.exposeInMainWorld('mh', {
   ngrok: {
     ensure: invoke('ngrok:ensure'),
     setToken: invoke('ngrok:setToken'),
+    allowInDefender: invoke('ngrok:allowInDefender'),
     start: invoke('ngrok:start'),
     stop: invoke('ngrok:stop'),
     state: invoke('ngrok:state'),

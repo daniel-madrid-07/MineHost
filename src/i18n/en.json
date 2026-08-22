@@ -399,5 +399,18 @@
   "perf.good": "Smooth",
   "perf.fair": "Slightly behind",
   "perf.poor": "Struggling",
-  "perf.window": "Last {n} minutes"
+  "perf.window": "Last {n} minutes",
+  "err.NGROK_MISSING": "ngrok is not installed yet. MineHost will download it; check your connection and try again.",
+  "err.NGROK_BLOCKED": "Windows blocked ngrok.exe. Allow it in your antivirus and try again.",
+  "err.NGROK_DOWNLOAD_FAILED": "ngrok could not be downloaded. Check your connection and try again.",
+  "err.NGROK_TOKEN_EMPTY": "Paste your authtoken first.",
+  "err.NGROK_FAILED": "ngrok did not accept that authtoken. Copy it again from the dashboard.",
+  "err.NO_SERVER": "Create a server first.",
+  "err.NOT_INSTALLED": "This server is not installed yet.",
+  "err.SERVER_RUNNING": "Stop the server first.",
+  "err.NGROK_QUARANTINED": "Your antivirus removed ngrok.exe. It is a false alarm: tunnelling tools get flagged because malware abuses them too.",
+  "access.allowDefender": "Allow it in Windows Defender",
+  "access.defenderDone": "Exception added. Try saving the authtoken again.",
+  "err.DEFENDER_DENIED": "The permission prompt was declined, so the exception was not added.",
+  "err.DEFENDER_FAILED": "The exception could not be added. You can add it by hand in Windows Security."
 }

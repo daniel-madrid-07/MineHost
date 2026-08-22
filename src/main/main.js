@@ -572,6 +572,7 @@ handle('dialog:pickAny', async () => {
 /* ---------------------------------- ngrok --------------------------------- */
 
 handle('ngrok:ensure', () => NgrokManager.ensureBinary((p) => send('task:progress', p)));
+handle('ngrok:allowInDefender', () => NgrokManager.addDefenderExclusion());
 handle('ngrok:setToken', async (t) => {
   const res = await tunnel.setAuthToken(t);
   if (res.ok) patchActive({ ngrokToken: t });

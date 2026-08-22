@@ -399,5 +399,18 @@
   "perf.good": "Fluido",
   "perf.fair": "Algo justo",
   "perf.poor": "Sufriendo",
-  "perf.window": "Últimos {n} minutos"
+  "perf.window": "Últimos {n} minutos",
+  "err.NGROK_MISSING": "ngrok todavía no está instalado. MineHost lo descargará; comprueba tu conexión e inténtalo otra vez.",
+  "err.NGROK_BLOCKED": "Windows ha bloqueado ngrok.exe. Permítelo en tu antivirus e inténtalo de nuevo.",
+  "err.NGROK_DOWNLOAD_FAILED": "No se ha podido descargar ngrok. Comprueba tu conexión e inténtalo otra vez.",
+  "err.NGROK_TOKEN_EMPTY": "Pega tu authtoken primero.",
+  "err.NGROK_FAILED": "ngrok no ha aceptado ese authtoken. Vuelve a copiarlo desde el panel.",
+  "err.NO_SERVER": "Crea antes un servidor.",
+  "err.NOT_INSTALLED": "Este servidor todavía no está instalado.",
+  "err.SERVER_RUNNING": "Apaga el servidor primero.",
+  "err.NGROK_QUARANTINED": "Tu antivirus ha eliminado ngrok.exe. Es una falsa alarma: las herramientas de túnel se marcan porque el malware también las usa.",
+  "access.allowDefender": "Permitirlo en Windows Defender",
+  "access.defenderDone": "Excepción añadida. Vuelve a guardar el authtoken.",
+  "err.DEFENDER_DENIED": "Se ha rechazado el permiso, así que no se añadió la excepción.",
+  "err.DEFENDER_FAILED": "No se pudo añadir la excepción. Puedes añadirla a mano en Seguridad de Windows."
 }

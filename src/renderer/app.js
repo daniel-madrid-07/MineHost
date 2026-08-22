@@ -48,6 +48,14 @@ function t(key, vars) {
 }
 
 /** Re-renders every static string marked up in the HTML. */
+/** Backend errors travel as codes; show the sentence when we have one. */
+function errText(error) {
+  if (!error) return '';
+  const key = `err.${error}`;
+  const translated = t(key);
+  return translated === key ? String(error) : translated;
+}
+
 function applyStrings() {
   document.querySelectorAll('[data-i18n]').forEach((n) => {
     n.textContent = t(n.dataset.i18n);
@@ -369,15 +377,15 @@ $('btnPower').addEventListener('click', async () => {
 
   go('consola');
   const r = await api.server.start();
-  if (!r.ok) { toast(r.error, 'error'); return; }
+  if (!r.ok) { toast(errText(r.error), 'error'); return; }
 
   if (S.server?.autoTunnel) {
     if (!S.server?.ngrokToken) {
       toast(t('panel.addressHintToken'), 'warn');
       return;
     }
-    const t = await api.ngrok.start(25565);
-    if (!t.ok) toast(`Túnel: ${t.error}`, 'error');
+    const tunnelResult = await api.ngrok.start();
+    if (!tunnelResult.ok) toast(errText(tunnelResult.error), 'error');
   }
 });
 
@@ -1074,6 +1082,21 @@ $('btnEyeToken').addEventListener('click', () => {
   $('btnEyeToken').textContent = show ? 'Ocultar' : 'Ver';
 });
 
+$('btnAllowDefender').addEventListener('click', async () => {
+  const btn = $('btnAllowDefender');
+  btn.disabled = true;
+  const r = await api.ngrok.allowInDefender();
+  btn.disabled = false;
+
+  if (r.ok) {
+    btn.hidden = true;
+    $('tokenHint').textContent = t('access.defenderDone');
+    $('tokenHint').style.color = 'var(--accent)';
+  } else {
+    toast(errText(r.error), 'error');
+  }
+});
+
 $('btnSaveToken').addEventListener('click', async () => {
   const token = $('inpToken').value.trim();
   if (!token) return toast(t('access.tokenMissing'), 'warn');
@@ -1085,10 +1108,13 @@ $('btnSaveToken').addEventListener('click', async () => {
   taskEnd();
 
   if (!r.ok) {
-    $('tokenHint').textContent = r.error;
+    const message = errText(r.error);
+    $('tokenHint').textContent = message;
     $('tokenHint').style.color = 'var(--danger)';
-    return toast(r.error, 'error');
+    $('btnAllowDefender').hidden = r.error !== 'NGROK_QUARANTINED';
+    return toast(message, 'error');
   }
+  $('btnAllowDefender').hidden = true;
   S.server = await api.servers.active();
   $('tokenHint').textContent = t('access.tokenVerified');
   $('tokenHint').style.color = 'var(--accent)';

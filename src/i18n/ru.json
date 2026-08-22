@@ -399,5 +399,18 @@
   "perf.good": "Плавно",
   "perf.fair": "Слегка не успевает",
   "perf.poor": "Тяжело",
-  "perf.window": "Последние {n} мин."
+  "perf.window": "Последние {n} мин.",
+  "err.NGROK_MISSING": "ngrok ещё не установлен. MineHost скачает его — проверь соединение и попробуй снова.",
+  "err.NGROK_BLOCKED": "Windows заблокировал ngrok.exe. Разреши его в антивирусе и попробуй снова.",
+  "err.NGROK_DOWNLOAD_FAILED": "Не удалось скачать ngrok. Проверь соединение и попробуй снова.",
+  "err.NGROK_TOKEN_EMPTY": "Сначала вставь свой authtoken.",
+  "err.NGROK_FAILED": "ngrok не принял этот authtoken. Скопируй его из панели заново.",
+  "err.NO_SERVER": "Сначала создай сервер.",
+  "err.NOT_INSTALLED": "Этот сервер ещё не установлен.",
+  "err.SERVER_RUNNING": "Сначала останови сервер.",
+  "err.NGROK_QUARANTINED": "Антивирус удалил ngrok.exe. Это ложная тревога: туннели помечают, потому что их используют и вредоносы.",
+  "access.allowDefender": "Разрешить в Windows Defender",
+  "access.defenderDone": "Исключение добавлено. Сохрани authtoken ещё раз.",
+  "err.DEFENDER_DENIED": "Разрешение отклонено, исключение не добавлено.",
+  "err.DEFENDER_FAILED": "Не удалось добавить исключение. Это можно сделать в «Безопасность Windows»."
 }

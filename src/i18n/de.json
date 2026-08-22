@@ -399,5 +399,18 @@
   "perf.good": "Flüssig",
   "perf.fair": "Etwas knapp",
   "perf.poor": "Am Limit",
-  "perf.window": "Letzte {n} Minuten"
+  "perf.window": "Letzte {n} Minuten",
+  "err.NGROK_MISSING": "ngrok ist noch nicht installiert. MineHost lädt es herunter; prüfe deine Verbindung und versuch es noch einmal.",
+  "err.NGROK_BLOCKED": "Windows hat ngrok.exe blockiert. Erlaube es im Virenschutz und versuch es erneut.",
+  "err.NGROK_DOWNLOAD_FAILED": "ngrok konnte nicht geladen werden. Prüfe deine Verbindung und versuch es noch einmal.",
+  "err.NGROK_TOKEN_EMPTY": "Füg zuerst deinen authtoken ein.",
+  "err.NGROK_FAILED": "ngrok hat den authtoken nicht angenommen. Kopier ihn noch einmal aus dem Dashboard.",
+  "err.NO_SERVER": "Leg zuerst einen Server an.",
+  "err.NOT_INSTALLED": "Dieser Server ist noch nicht installiert.",
+  "err.SERVER_RUNNING": "Stopp zuerst den Server.",
+  "err.NGROK_QUARANTINED": "Dein Virenschutz hat ngrok.exe entfernt. Fehlalarm: Tunnel-Werkzeuge werden markiert, weil auch Schadsoftware sie nutzt.",
+  "access.allowDefender": "In Windows Defender erlauben",
+  "access.defenderDone": "Ausnahme eingetragen. Speicher den authtoken noch einmal.",
+  "err.DEFENDER_DENIED": "Die Berechtigung wurde abgelehnt, die Ausnahme wurde nicht eingetragen.",
+  "err.DEFENDER_FAILED": "Die Ausnahme ließ sich nicht eintragen. Du kannst sie in der Windows-Sicherheit hinzufügen."
 }

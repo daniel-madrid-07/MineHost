@@ -8,6 +8,37 @@ const AdmZip = require('adm-zip');
 const NGROK_ZIP = 'https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip';
 const BIN_DIR = path.join(os.homedir(), '.minehost', 'ngrok');
 const BIN_PATH = path.join(BIN_DIR, 'ngrok.exe');
+
+/**
+ * Turns a spawn failure into something a person can act on. Node reports a
+ * missing or blocked executable as ENOENT/UNKNOWN, which on its own reads like
+ * nonsense to anyone who did not write this code.
+ */
+function explain(err, stderr) {
+  const code = err?.code;
+  if (code === 'ENOENT' || code === 'UNKNOWN') {
+    // Written a moment ago and already gone: an antivirus took it. Tunnelling
+    // tools trip heuristics because malware abuses them too.
+    return fs.existsSync(BIN_PATH) ? 'NGROK_BLOCKED' : 'NGROK_QUARANTINED';
+  }
+  if (code === 'EACCES' || code === 'EPERM') return 'NGROK_BLOCKED';
+  const text = String(stderr || err?.message || '').trim();
+  return text || 'NGROK_FAILED';
+}
+
+/** Asks Defender to leave the ngrok folder alone. Needs elevation. */
+function addDefenderExclusion() {
+  return new Promise((resolve) => {
+    const inner = `Add-MpPreference -ExclusionPath '${BIN_DIR}' -ErrorAction Stop`;
+    const proc = spawn('powershell', [
+      '-NoProfile', '-Command',
+      `Start-Process powershell -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList '-NoProfile','-Command',"${inner}"`,
+    ], { windowsHide: true });
+
+    proc.on('error', () => resolve({ ok: false, error: 'DEFENDER_FAILED' }));
+    proc.on('close', (code) => resolve(code === 0 ? { ok: true } : { ok: false, error: 'DEFENDER_DENIED' }));
+  });
+}
 const API = 'http://127.0.0.1:4040/api/tunnels';
 
 function apiTunnels() {
@@ -45,6 +76,25 @@ class NgrokManager {
   static async ensureBinary(onProgress) {
     if (fs.existsSync(BIN_PATH)) return { ok: true, path: BIN_PATH, alreadyPresent: true };
 
+    // Reuse a copy the user already downloaded, rather than fetching another.
+    fs.mkdirSync(BIN_DIR, { recursive: true });
+    for (const candidate of NgrokManager.knownCopies()) {
+      try {
+        fs.copyFileSync(candidate, BIN_PATH);
+        // Antivirus removal is asynchronous, so confirm it is still there.
+        await new Promise((r) => setTimeout(r, 600));
+        if (!fs.existsSync(BIN_PATH)) {
+          const err = new Error('NGROK_QUARANTINED');
+          err.code = 'NGROK_QUARANTINED';
+          throw err;
+        }
+        onProgress?.({ label: 'ngrok', percent: 100 });
+        return { ok: true, path: BIN_PATH, adopted: candidate };
+      } catch (err) {
+        if (err.code === 'NGROK_QUARANTINED') throw err;
+      }
+    }
+
     const { download } = require('./installer');
     const zipPath = path.join(os.tmpdir(), `minehost-ngrok-${Date.now()}.zip`);
 
@@ -55,11 +105,29 @@ class NgrokManager {
     new AdmZip(zipPath).extractAllTo(BIN_DIR, true);
     fs.rmSync(zipPath, { force: true });
 
+    await new Promise((r) => setTimeout(r, 600));
     if (!fs.existsSync(BIN_PATH)) {
-      throw new Error('No se pudo extraer ngrok.exe. Puede que el antivirus lo haya bloqueado.');
+      const err = new Error('NGROK_QUARANTINED');
+      err.code = 'NGROK_QUARANTINED';
+      throw err;
     }
     onProgress?.({ label: 'ngrok listo', percent: 100 });
     return { ok: true, path: BIN_PATH, alreadyPresent: false };
+  }
+
+  /** Places an ngrok.exe may already be sitting on this machine. */
+  static knownCopies() {
+    const paths = [];
+    const cwd = process.cwd();
+    paths.push(path.join(cwd, 'ngrok', 'ngrok.exe'));
+    paths.push(path.join(cwd, 'ngrok.exe'));
+
+    const local = process.env.LOCALAPPDATA;
+    if (local) paths.push(path.join(local, 'ngrok', 'ngrok.exe'));
+
+    return paths.filter((p) => {
+      try { return fs.statSync(p).isFile(); } catch (_) { return false; }
+    });
   }
 
   getState() {
@@ -71,16 +139,20 @@ class NgrokManager {
     this.onState?.(this.getState());
   }
 
-  setAuthToken(token) {
+  async setAuthToken(token) {
+    if (!token || !token.trim()) return { ok: false, error: 'NGROK_TOKEN_EMPTY' };
+
+    // Saving the token is usually the first thing anyone does, so fetch the
+    // binary here rather than failing with a missing-file error.
+    try {
+      await NgrokManager.ensureBinary();
+    } catch (err) {
+      return { ok: false, error: err.code === 'NGROK_QUARANTINED' ? 'NGROK_QUARANTINED' : 'NGROK_DOWNLOAD_FAILED' };
+    }
+
     return new Promise((resolve) => {
-      if (!fs.existsSync(BIN_PATH)) {
-        return resolve({ ok: false, error: 'ngrok no está instalado todavía.' });
-      }
-      if (!token || !token.trim()) {
-        return resolve({ ok: false, error: 'El authtoken está vacío.' });
-      }
       execFile(BIN_PATH, ['config', 'add-authtoken', token.trim()], (err, stdout, stderr) => {
-        if (err) return resolve({ ok: false, error: (stderr || err.message).trim() });
+        if (err) return resolve({ ok: false, error: explain(err, stderr) });
         resolve({ ok: true, message: (stdout || '').trim() });
       });
     });
@@ -88,8 +160,13 @@ class NgrokManager {
 
   async start(port = 25565) {
     if (this.proc) return { ok: true, address: this.address };
+
     if (!fs.existsSync(BIN_PATH)) {
-      return { ok: false, error: 'ngrok no está instalado. Pulsa "Preparar ngrok" primero.' };
+      try {
+        await NgrokManager.ensureBinary();
+      } catch (err) {
+        return { ok: false, error: err.code === 'NGROK_QUARANTINED' ? 'NGROK_QUARANTINED' : 'NGROK_MISSING' };
+      }
     }
 
     this.lastError = null;
@@ -172,5 +249,8 @@ class NgrokManager {
     });
   }
 }
+
+NgrokManager.addDefenderExclusion = addDefenderExclusion;
+NgrokManager.BIN_DIR = BIN_DIR;
 
 module.exports = NgrokManager;
