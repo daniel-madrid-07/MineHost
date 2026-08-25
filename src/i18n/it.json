@@ -412,5 +412,10 @@
   "access.allowDefender": "Consenti in Windows Defender",
   "access.defenderDone": "Eccezione aggiunta. Salva di nuovo l'authtoken.",
   "err.DEFENDER_DENIED": "Il permesso è stato rifiutato, quindi l'eccezione non è stata aggiunta.",
-  "err.DEFENDER_FAILED": "Non è stato possibile aggiungere l'eccezione. Puoi farlo in Sicurezza di Windows."
+  "err.DEFENDER_FAILED": "Non è stato possibile aggiungere l'eccezione. Puoi farlo in Sicurezza di Windows.",
+  "server.external": "In esecuzione fuori da MineHost",
+  "server.externalHint": "Questo server è stato avviato altrove, quindi la console non è disponibile qui. Puoi comunque spegnerlo.",
+  "err.EXTERNAL_RUNNING": "C'è già un server in esecuzione su questa porta.",
+  "err.EXTERNAL_NO_CONSOLE": "Questo server è stato avviato fuori da MineHost, non si possono inviare comandi.",
+  "err.ALREADY_RUNNING": "Il server è già in esecuzione."
 }

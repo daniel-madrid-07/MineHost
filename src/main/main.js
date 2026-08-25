@@ -194,7 +194,31 @@ app.whenReady().then(() => {
   if (process.argv.includes('--hidden') && Settings.get('minimiseToTray')) {
     win.once('ready-to-show', () => win.hide());
   }
-  if (Settings.get('wakeOnDemand')) setTimeout(() => armWake(), 1500);
+  // A server may already be running: started by a script, or left up when the
+  // app was last closed. Wait for the interface before adopting it, otherwise
+  // the state message is sent to a window that cannot receive it yet.
+  const adoptWhenReady = async () => {
+    const { settings } = currentServer();
+    if (settings) {
+      const state = await server.adoptExisting({
+        serverPath: settings.serverPath,
+        port: settings.port || 25565,
+      });
+      if (state.external) {
+        send('server:state', state);
+        tray?.refresh();
+        return;   // Wake-on-demand would fight it for the port.
+      }
+    }
+    if (Settings.get('wakeOnDemand')) armWake();
+  };
+
+  if (win) {
+    win.webContents.once('did-finish-load', () => setTimeout(adoptWhenReady, 400));
+  } else {
+    setTimeout(adoptWhenReady, 1500);
+  }
+
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 
@@ -387,7 +411,14 @@ handle('servers:select', async (id) => {
   const next = Settings.setActive(id);
   scheduler.configure(next?.schedule || {});
   await wake.stop();
-  if (Settings.get('wakeOnDemand')) await armWake();
+  server.releaseExternal();
+
+  const state = await server.adoptExisting({
+    serverPath: next?.serverPath,
+    port: next?.port || 25565,
+  });
+  if (!state.external && Settings.get('wakeOnDemand')) await armWake();
+
   tray?.refresh();
   return { ok: true, server: next };
 });

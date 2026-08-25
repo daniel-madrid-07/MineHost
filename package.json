@@ -1,6 +1,6 @@
 {
   "name": "minehost",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Crea y gestiona servidores de Minecraft en tu propio PC, sin tocar el router.",
   "main": "src/main/main.js",
   "author": "Daniel",

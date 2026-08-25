@@ -412,5 +412,10 @@
   "access.allowDefender": "Allow it in Windows Defender",
   "access.defenderDone": "Exception added. Try saving the authtoken again.",
   "err.DEFENDER_DENIED": "The permission prompt was declined, so the exception was not added.",
-  "err.DEFENDER_FAILED": "The exception could not be added. You can add it by hand in Windows Security."
+  "err.DEFENDER_FAILED": "The exception could not be added. You can add it by hand in Windows Security.",
+  "server.external": "Running outside MineHost",
+  "server.externalHint": "This server was started elsewhere, so its console is not available here. You can still stop it.",
+  "err.EXTERNAL_RUNNING": "A server is already running on this port.",
+  "err.EXTERNAL_NO_CONSOLE": "This server was started outside MineHost, so commands cannot be sent to it.",
+  "err.ALREADY_RUNNING": "The server is already running."
 }

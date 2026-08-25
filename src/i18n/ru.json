@@ -412,5 +412,10 @@
   "access.allowDefender": "Разрешить в Windows Defender",
   "access.defenderDone": "Исключение добавлено. Сохрани authtoken ещё раз.",
   "err.DEFENDER_DENIED": "Разрешение отклонено, исключение не добавлено.",
-  "err.DEFENDER_FAILED": "Не удалось добавить исключение. Это можно сделать в «Безопасность Windows»."
+  "err.DEFENDER_FAILED": "Не удалось добавить исключение. Это можно сделать в «Безопасность Windows».",
+  "server.external": "Запущен вне MineHost",
+  "server.externalHint": "Этот сервер запустили другим способом, поэтому консоли здесь нет. Остановить его всё равно можно.",
+  "err.EXTERNAL_RUNNING": "На этом порту уже работает сервер.",
+  "err.EXTERNAL_NO_CONSOLE": "Сервер запущен вне MineHost, отправлять команды нельзя.",
+  "err.ALREADY_RUNNING": "Сервер уже работает."
 }

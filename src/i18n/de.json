@@ -412,5 +412,10 @@
   "access.allowDefender": "In Windows Defender erlauben",
   "access.defenderDone": "Ausnahme eingetragen. Speicher den authtoken noch einmal.",
   "err.DEFENDER_DENIED": "Die Berechtigung wurde abgelehnt, die Ausnahme wurde nicht eingetragen.",
-  "err.DEFENDER_FAILED": "Die Ausnahme ließ sich nicht eintragen. Du kannst sie in der Windows-Sicherheit hinzufügen."
+  "err.DEFENDER_FAILED": "Die Ausnahme ließ sich nicht eintragen. Du kannst sie in der Windows-Sicherheit hinzufügen.",
+  "server.external": "Läuft außerhalb von MineHost",
+  "server.externalHint": "Dieser Server wurde anders gestartet, deshalb gibt es hier keine Konsole. Stoppen kannst du ihn trotzdem.",
+  "err.EXTERNAL_RUNNING": "Auf diesem Port läuft bereits ein Server.",
+  "err.EXTERNAL_NO_CONSOLE": "Dieser Server wurde außerhalb von MineHost gestartet, Befehle lassen sich nicht senden.",
+  "err.ALREADY_RUNNING": "Der Server läuft bereits."
 }

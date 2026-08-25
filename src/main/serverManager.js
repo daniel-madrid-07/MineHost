@@ -4,6 +4,7 @@ const os = require('os');
 const { spawn, execFile } = require('child_process');
 
 const events = require('./events');
+const detectRunning = require('./detectRunning');
 
 const READY_RE   = /Done \(([\d.]+)s\)!/i;
 const JOIN_RE    = /:\s*([A-Za-z0-9_]{1,16}) joined the game/i;
@@ -73,6 +74,8 @@ class ServerManager {
     this.history = [];
     this.tpsTimer = null;
     this.tpsProbe = null;
+    this.external = null;
+    this.watchTimer = null;
   }
 
   getState() {
@@ -80,9 +83,54 @@ class ServerManager {
       status: this.status,
       players: [...this.players],
       startedAt: this.startedAt,
-      pid: this.proc?.pid || null,
+      pid: this.proc?.pid || this.external?.pid || null,
       error: this.lastError,
+      // Started outside MineHost, so we can watch it but not drive it.
+      external: !!this.external,
     };
+  }
+
+  /**
+   * Picks up a server that is already running: launched from a script, or
+   * still alive after the app was closed and reopened. We cannot read its
+   * console or send it commands, but reporting it as offline would be a lie.
+   */
+  async adoptExisting({ serverPath, port }) {
+    if (this.proc || this.external) return this.getState();
+
+    const found = await detectRunning.detect({ serverPath, port });
+    if (!found) return this.getState();
+
+    this.external = found;
+    this.startedAt = found.startedAt;
+    this._setState('running');
+    this._emit('Found a server already running outside MineHost.', 'system');
+    this._watchExternal(port);
+
+    return this.getState();
+  }
+
+  /** Notices when an adopted server goes away. */
+  _watchExternal(port) {
+    clearInterval(this.watchTimer);
+    this.watchTimer = setInterval(async () => {
+      if (!this.external) return clearInterval(this.watchTimer);
+      if (await detectRunning.portInUse(port)) return;
+
+      this._emit('The external server has stopped.', 'system');
+      this.external = null;
+      clearInterval(this.watchTimer);
+      this.watchTimer = null;
+      this.startedAt = null;
+      this.players = [];
+      this._setState('stopped');
+    }, 5000);
+  }
+
+  releaseExternal() {
+    clearInterval(this.watchTimer);
+    this.watchTimer = null;
+    this.external = null;
   }
 
   _setState(status) {
@@ -156,7 +204,8 @@ class ServerManager {
   }
 
   start(opts) {
-    if (this.proc) return { ok: false, error: 'El servidor ya está en marcha.' };
+    if (this.proc) return { ok: false, error: 'ALREADY_RUNNING' };
+    if (this.external) return { ok: false, error: 'EXTERNAL_RUNNING' };
 
     const { serverPath, javaPath, ramGb } = opts;
 
@@ -257,6 +306,9 @@ class ServerManager {
   _cleanup() {
     clearInterval(this.statsTimer);
     clearInterval(this.tpsTimer);
+    clearInterval(this.watchTimer);
+    this.watchTimer = null;
+    this.external = null;
     this.statsTimer = null;
     this.tpsTimer = null;
     this.tps = null;
@@ -372,6 +424,7 @@ class ServerManager {
   }
 
   sendCommand(cmd) {
+    if (this.external) return { ok: false, error: 'EXTERNAL_NO_CONSOLE' };
     if (!this.proc || this.status === 'stopped') {
       return { ok: false, error: 'El servidor no está en marcha.' };
     }
@@ -385,6 +438,21 @@ class ServerManager {
   }
 
   stop({ force = false, save = true } = {}) {
+    // An adopted server has no stdin we can reach, so ask Windows to close it.
+    if (!this.proc && this.external) {
+      const pid = this.external.pid;
+      return new Promise((resolve) => {
+        require('child_process').execFile('taskkill', ['/PID', String(pid), '/T', '/F'],
+          { windowsHide: true }, () => {
+            this.releaseExternal();
+            this.startedAt = null;
+            this.players = [];
+            this._setState('stopped');
+            resolve({ ok: true });
+          });
+      });
+    }
+
     return new Promise((resolve) => {
       if (!this.proc) return resolve({ ok: true });
 

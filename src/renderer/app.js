@@ -224,6 +224,7 @@ const statusLabel = (k) => t(`status.${k}`);
 
 function renderServer() {
   const { status, players, startedAt } = S.state;
+  const external = !!S.state.external;
   const platform = S.meta.platforms?.find((p) => p.id === (S.info.platform || S.server?.platform));
 
   $('stState').textContent = statusLabel(status);
@@ -237,16 +238,23 @@ function renderServer() {
   $('chipTitle').textContent = S.server?.name || 'MineHost';
   $('chipSub').textContent = !S.server
     ? t('servers.empty')
-    : S.info.installed
-      ? `${S.info.minecraft || ''} · ${statusLabel(status)}`
-      : t('servers.notInstalled');
+    : !S.info.installed
+      ? t('servers.notInstalled')
+      : `${S.info.minecraft || ''} · ${external ? t('server.external') : statusLabel(status)}`;
+
+  // An adopted server has no console we can read or write.
+  if ($('externalNotice')) $('externalNotice').hidden = !external;
+  $('cmdInput').disabled = external;
+  $('cmdSend').disabled = external;
 
   $('tbStatus').hidden = status === 'stopped';
-  $('tbStatusText').textContent = statusLabel(status);
+  $('tbStatusText').textContent = external ? t('server.external') : statusLabel(status);
   $('tbStatus').querySelector('.pip').className = `pip ${pipClass}`;
 
   const btn = $('btnPower');
-  btn.disabled = status === 'starting' || status === 'stopping' || !S.info.installed;
+  const busy = status === 'starting' || status === 'stopping';
+  // A running server can always be stopped, whatever the install check says.
+  btn.disabled = busy || (status === 'stopped' && !S.info.installed);
   $('btnPowerText').textContent =
     status === 'stopped' ? t('panel.powerStart')
     : status === 'running' ? t('panel.powerStop')
@@ -2232,6 +2240,16 @@ async function init() {
 
   await reloadActive();
   loadPlatformVersions();
+
+  // The server can be adopted moments after start-up, or stop on its own.
+  // Re-reading the state keeps the button honest if an event is ever missed.
+  setInterval(async () => {
+    const fresh = await api.server.state();
+    if (fresh.status !== S.state.status || fresh.external !== S.state.external) {
+      S.state = fresh;
+      renderServer();
+    }
+  }, 4000);
 
   if (!S.server) {
     setTimeout(() => wizard.open(), 500);
