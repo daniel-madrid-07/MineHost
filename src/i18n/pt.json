@@ -417,5 +417,10 @@
   "server.externalHint": "Este servidor foi iniciado por outro caminho, então o console não aparece aqui. Você ainda pode desligá-lo.",
   "err.EXTERNAL_RUNNING": "Já tem um servidor rodando nesta porta.",
   "err.EXTERNAL_NO_CONSOLE": "Este servidor foi iniciado fora do MineHost, então não dá para enviar comandos.",
-  "err.ALREADY_RUNNING": "O servidor já está rodando."
+  "err.ALREADY_RUNNING": "O servidor já está rodando.",
+  "err.mods": "Um mod não combina com esta versão do servidor. Veja no console qual é.",
+  "crash.mods": "O servidor não iniciou: um mod precisa de outra versão. Veja o console.",
+  "crash.port": "A porta {port} já está em uso. Pode haver outro servidor rodando.",
+  "crash.eula": "É preciso aceitar o EULA do Minecraft para o servidor rodar.",
+  "crash.unknown": "O servidor parou de repente. Os detalhes estão no console."
 }

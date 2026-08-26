@@ -131,7 +131,10 @@ app.whenReady().then(() => {
     onCrash: async ({ code, reason }) => {
       send('server:crash', { code, reason });
       const active = Settings.activeServer();
-      if (reason !== 'port' && reason !== 'eula' && active?.autoRestartOnCrash) {
+      // Some failures repeat forever: a busy port, an unaccepted EULA, or mods
+      // that do not match the server. Retrying those just spams the console.
+      const permanent = reason === 'port' || reason === 'eula' || reason === 'mods';
+      if (!permanent && active?.autoRestartOnCrash) {
         send('server:log', {
           line: 'Restarting automatically in 5 seconds…', level: 'system', ts: Date.now(),
         });

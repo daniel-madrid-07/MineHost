@@ -13,6 +13,8 @@ const CHAT_RE    = /:\s*<([A-Za-z0-9_]{1,16})>\s*(.+)$/;
 const SAVED_RE   = /Saved the game|ThreadedAnvilChunkStorage.*complete|Saving.*chunks/i;
 const EULA_RE    = /You need to agree to the EULA/i;
 const PORT_RE    = /Perhaps a server is already running|address already in use|FAILED TO BIND/i;
+/* A missing or mismatched mod dependency never fixes itself on a retry. */
+const MODS_RE    = /Missing or unsupported mandatory dependencies|requires .* or above|ModLoadingException/i;
 
 /* Forge-likes answer /forge tps; Paper-likes answer /tps. */
 const TPS_FORGE_RE = /Overall\s*:?\s*Mean tick time:\s*([\d.]+)\s*ms\.?\s*Mean TPS:\s*([\d.]+)/i;
@@ -175,18 +177,57 @@ class ServerManager {
     });
   }
 
+  /**
+   * Finds the launcher argument file, preferring the newest version present.
+   *
+   * The version recorded in settings can fall behind what is actually
+   * installed — after a reinstall, or when a folder was set up outside the
+   * app. Launching an older build then fails on any mod that requires the
+   * newer one, so the files on disk are the authority.
+   */
+  _findArgFile(serverPath, recorded) {
+    const roots = [
+      path.join(serverPath, 'libraries', 'net', 'neoforged', 'neoforge'),
+      path.join(serverPath, 'libraries', 'net', 'minecraftforge', 'forge'),
+    ];
+
+    const found = [];
+    for (const root of roots) {
+      if (!fs.existsSync(root)) continue;
+      for (const dir of fs.readdirSync(root)) {
+        const file = path.join(root, dir, 'win_args.txt');
+        if (fs.existsSync(file)) found.push({ version: dir, file });
+      }
+    }
+    if (!found.length) return null;
+
+    const rank = (v) => String(v).split(/[.\-]/).map((n) => parseInt(n, 10) || 0);
+    found.sort((a, b) => {
+      const x = rank(a.version);
+      const y = rank(b.version);
+      for (let i = 0; i < Math.max(x.length, y.length); i++) {
+        if ((y[i] || 0) !== (x[i] || 0)) return (y[i] || 0) - (x[i] || 0);
+      }
+      return 0;
+    });
+
+    const newest = found[0];
+    if (recorded && newest.version !== recorded) {
+      this._emit(`Using NeoForge ${newest.version} (newer than the recorded ${recorded}).`, 'system');
+    }
+    return newest;
+  }
+
   _launchArgs({ serverPath, platform, version, ramGb }) {
     const flags = jvmFlags(ramGb);
 
     if (platform === 'neoforge' || platform === 'forge') {
-      const argFiles = [
-        path.join(serverPath, 'libraries', 'net', 'neoforged', 'neoforge', version, 'win_args.txt'),
-        path.join(serverPath, 'libraries', 'net', 'minecraftforge', 'forge', version, 'win_args.txt'),
-      ];
-      const argFile = argFiles.find((f) => fs.existsSync(f));
+      const picked = this._findArgFile(serverPath, version);
+      const argFile = picked?.file;
       if (argFile) {
         const jvmFile = path.join(serverPath, 'user_jvm_args.txt');
         fs.writeFileSync(jvmFile, `${flags.join('\n')}\n`, 'utf8');
+        this.launchedVersion = picked.version;
         return [
           `@${path.basename(jvmFile)}`,
           `@${path.relative(serverPath, argFile).replace(/\\/g, '/')}`,
@@ -261,6 +302,7 @@ class ServerManager {
 
         if (EULA_RE.test(line)) this.lastError = 'eula';
         if (PORT_RE.test(line)) this.lastError = 'port';
+        if (MODS_RE.test(line) && !this.lastError) this.lastError = 'mods';
 
         const j = JOIN_RE.exec(line);
         if (j && !this.players.includes(j[1])) {

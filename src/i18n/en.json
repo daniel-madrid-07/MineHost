@@ -417,5 +417,10 @@
   "server.externalHint": "This server was started elsewhere, so its console is not available here. You can still stop it.",
   "err.EXTERNAL_RUNNING": "A server is already running on this port.",
   "err.EXTERNAL_NO_CONSOLE": "This server was started outside MineHost, so commands cannot be sent to it.",
-  "err.ALREADY_RUNNING": "The server is already running."
+  "err.ALREADY_RUNNING": "The server is already running.",
+  "err.mods": "A mod does not match this server version. Check the console for which one.",
+  "crash.mods": "The server could not start: a mod needs a different version. See the console.",
+  "crash.port": "Port {port} is already in use. Another server may be running.",
+  "crash.eula": "You need to accept the Minecraft EULA before the server can run.",
+  "crash.unknown": "The server stopped unexpectedly. The console has the details."
 }

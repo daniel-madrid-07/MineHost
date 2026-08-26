@@ -417,5 +417,10 @@
   "server.externalHint": "Questo server è stato avviato altrove, quindi la console non è disponibile qui. Puoi comunque spegnerlo.",
   "err.EXTERNAL_RUNNING": "C'è già un server in esecuzione su questa porta.",
   "err.EXTERNAL_NO_CONSOLE": "Questo server è stato avviato fuori da MineHost, non si possono inviare comandi.",
-  "err.ALREADY_RUNNING": "Il server è già in esecuzione."
+  "err.ALREADY_RUNNING": "Il server è già in esecuzione.",
+  "err.mods": "Un mod non combacia con questa versione del server. Guarda la console per sapere quale.",
+  "crash.mods": "Il server non è partito: un mod richiede un'altra versione. Guarda la console.",
+  "crash.port": "La porta {port} è già occupata. Forse c'è un altro server acceso.",
+  "crash.eula": "Devi accettare l'EULA di Minecraft perché il server parta.",
+  "crash.unknown": "Il server si è fermato di colpo. I dettagli sono nella console."
 }

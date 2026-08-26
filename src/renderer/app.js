@@ -363,13 +363,16 @@ api.server.onStats((sample) => {
 });
 
 api.server.onCrash(({ reason }) => {
-  if (reason === 'port') {
-    toast(t('access.forwardClosed', { port: S.server?.port || 25565 }), 'error');
-  } else if (reason === 'eula') {
-    toast('EULA', 'error');
-  } else {
-    toast(t('status.stopped'), 'error');
-  }
+  const message =
+    reason === 'port' ? t('crash.port', { port: S.server?.port || 25565 })
+    : reason === 'eula' ? t('crash.eula')
+    : reason === 'mods' ? t('crash.mods')
+    : t('crash.unknown');
+
+  toast(message, 'error');
+
+  // A mod mismatch is only readable in the console, so take them there.
+  if (reason === 'mods') go('consola');
 });
 
 /* -------------------------------- Power ---------------------------------- */

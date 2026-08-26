@@ -417,5 +417,10 @@
   "server.externalHint": "Este servidor se arrancó por otro medio, así que su consola no está disponible aquí. Sí puedes apagarlo.",
   "err.EXTERNAL_RUNNING": "Ya hay un servidor en marcha en este puerto.",
   "err.EXTERNAL_NO_CONSOLE": "Este servidor se arrancó fuera de MineHost, así que no se le pueden enviar comandos.",
-  "err.ALREADY_RUNNING": "El servidor ya está en marcha."
+  "err.ALREADY_RUNNING": "El servidor ya está en marcha.",
+  "err.mods": "Un mod no encaja con esta versión del servidor. Mira la consola para saber cuál.",
+  "crash.mods": "El servidor no ha podido arrancar: un mod necesita otra versión. Mira la consola.",
+  "crash.port": "El puerto {port} ya está ocupado. Puede que haya otro servidor en marcha.",
+  "crash.eula": "Hay que aceptar el EULA de Minecraft para que el servidor arranque.",
+  "crash.unknown": "El servidor se cerró de forma inesperada. En la consola están los detalles."
 }
