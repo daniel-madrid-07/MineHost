@@ -480,18 +480,47 @@ class ServerManager {
   }
 
   stop({ force = false, save = true } = {}) {
-    // An adopted server has no stdin we can reach, so ask Windows to close it.
+    // An adopted server has no stdin, so it cannot be asked to save. Windows
+    // offers a polite close first: Minecraft treats that as a shutdown and
+    // flushes the world. Killing outright would lose the last few minutes.
     if (!this.proc && this.external) {
+      const { execFile } = require('child_process');
       const pid = this.external.pid;
+
+      const finish = (resolve) => {
+        this.releaseExternal();
+        this.startedAt = null;
+        this.players = [];
+        this._setState('stopped');
+        resolve({ ok: true });
+      };
+
       return new Promise((resolve) => {
-        require('child_process').execFile('taskkill', ['/PID', String(pid), '/T', '/F'],
-          { windowsHide: true }, () => {
-            this.releaseExternal();
-            this.startedAt = null;
-            this.players = [];
-            this._setState('stopped');
-            resolve({ ok: true });
-          });
+        this._setState('stopping');
+        this._emit('Asking the external server to shut down and save…', 'system');
+
+        // /T reaches child processes; no /F, so the server can save first.
+        execFile('taskkill', ['/PID', String(pid), '/T'], { windowsHide: true }, () => {});
+
+        // Give it time to write the world out before forcing anything.
+        const deadline = Date.now() + (force ? 15000 : 60000);
+        const poll = setInterval(() => {
+          execFile('tasklist', ['/FI', `PID eq ${pid}`, '/NH'], { windowsHide: true },
+            (err, stdout) => {
+              const alive = !err && stdout.includes(String(pid));
+              if (!alive) {
+                clearInterval(poll);
+                this._emit('The external server has stopped.', 'system');
+                return finish(resolve);
+              }
+              if (Date.now() > deadline) {
+                clearInterval(poll);
+                this._emit('It did not respond; closing it by force.', 'error');
+                execFile('taskkill', ['/PID', String(pid), '/T', '/F'],
+                  { windowsHide: true }, () => finish(resolve));
+              }
+            });
+        }, 1500);
       });
     }
 
@@ -500,12 +529,14 @@ class ServerManager {
 
       this.stopping = true;
       this._setState('stopping');
-      this._emit(save ? 'Guardando el mundo y cerrando…' : 'Cerrando…', 'system');
+      this._emit(save ? 'Saving the world and shutting down…' : 'Shutting down…', 'system');
 
       const proc = this.proc;
       proc.once('close', () => resolve({ ok: true }));
 
       try {
+        // save-all flush writes everything to disk; stop saves again on its way
+        // out. Both are belt and braces, which is what you want for a world.
         if (save) proc.stdin.write('save-all flush\n');
         proc.stdin.write('stop\n');
       } catch (_) {
@@ -514,7 +545,7 @@ class ServerManager {
 
       setTimeout(() => {
         if (this.proc === proc) {
-          this._emit('El servidor no responde; forzando el cierre.', 'error');
+          this._emit('The server is not responding; closing it by force.', 'error');
           try { proc.kill('SIGKILL'); } catch (_) {}
           resolve({ ok: true });
         }
