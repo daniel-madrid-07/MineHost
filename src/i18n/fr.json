@@ -422,5 +422,7 @@
   "crash.mods": "Le serveur n'a pas pu démarrer : un mod exige une autre version. Voyez la console.",
   "crash.port": "Le port {port} est déjà utilisé. Un autre serveur tourne peut-être.",
   "crash.eula": "Il faut accepter l'EULA de Minecraft pour que le serveur démarre.",
-  "crash.unknown": "Le serveur s'est arrêté brutalement. Les détails sont dans la console."
+  "crash.unknown": "Le serveur s'est arrêté brutalement. Les détails sont dans la console.",
+  "players.addedRestart": "{name} ajouté. Redémarrez le serveur pour que cela prenne effet.",
+  "players.removedRestart": "{name} retiré. Redémarrez le serveur pour que cela prenne effet."
 }

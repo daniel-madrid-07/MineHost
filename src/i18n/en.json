@@ -422,5 +422,7 @@
   "crash.mods": "The server could not start: a mod needs a different version. See the console.",
   "crash.port": "Port {port} is already in use. Another server may be running.",
   "crash.eula": "You need to accept the Minecraft EULA before the server can run.",
-  "crash.unknown": "The server stopped unexpectedly. The console has the details."
+  "crash.unknown": "The server stopped unexpectedly. The console has the details.",
+  "players.addedRestart": "{name} added. Restart the server for it to take effect.",
+  "players.removedRestart": "{name} removed. Restart the server for it to take effect."
 }

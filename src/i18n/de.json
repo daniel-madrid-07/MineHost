@@ -422,5 +422,7 @@
   "crash.mods": "Der Server konnte nicht starten: Ein Mod braucht eine andere Version. Sieh in die Konsole.",
   "crash.port": "Port {port} ist schon belegt. Vielleicht läuft ein anderer Server.",
   "crash.eula": "Du musst die Minecraft-EULA annehmen, damit der Server startet.",
-  "crash.unknown": "Der Server ist unerwartet gestoppt. Einzelheiten stehen in der Konsole."
+  "crash.unknown": "Der Server ist unerwartet gestoppt. Einzelheiten stehen in der Konsole.",
+  "players.addedRestart": "{name} hinzugefügt. Starte den Server neu, damit es greift.",
+  "players.removedRestart": "{name} entfernt. Starte den Server neu, damit es greift."
 }

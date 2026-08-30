@@ -422,5 +422,7 @@
   "crash.mods": "Il server non è partito: un mod richiede un'altra versione. Guarda la console.",
   "crash.port": "La porta {port} è già occupata. Forse c'è un altro server acceso.",
   "crash.eula": "Devi accettare l'EULA di Minecraft perché il server parta.",
-  "crash.unknown": "Il server si è fermato di colpo. I dettagli sono nella console."
+  "crash.unknown": "Il server si è fermato di colpo. I dettagli sono nella console.",
+  "players.addedRestart": "{name} aggiunto. Riavvia il server perché abbia effetto.",
+  "players.removedRestart": "{name} rimosso. Riavvia il server perché abbia effetto."
 }

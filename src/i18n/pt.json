@@ -422,5 +422,7 @@
   "crash.mods": "O servidor não iniciou: um mod precisa de outra versão. Veja o console.",
   "crash.port": "A porta {port} já está em uso. Pode haver outro servidor rodando.",
   "crash.eula": "É preciso aceitar o EULA do Minecraft para o servidor rodar.",
-  "crash.unknown": "O servidor parou de repente. Os detalhes estão no console."
+  "crash.unknown": "O servidor parou de repente. Os detalhes estão no console.",
+  "players.addedRestart": "{name} adicionado. Reinicie o servidor para valer.",
+  "players.removedRestart": "{name} removido. Reinicie o servidor para valer."
 }

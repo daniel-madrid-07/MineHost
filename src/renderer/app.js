@@ -354,7 +354,7 @@ api.server.onStats((sample) => {
   const rb = $('ramBar');
   rb.style.width = `${ramPct}%`;
   rb.className = ramPct > 90 ? 'hot' : ramPct > 75 ? 'warn' : '';
-  if (cpuPercent != null) {
+  if (Number.isFinite(cpuPercent)) {
     $('cpuValue').textContent = `${cpuPercent.toFixed(0)} %`;
     const cb = $('cpuBar');
     cb.style.width = `${Math.min(100, cpuPercent)}%`;
@@ -626,8 +626,11 @@ function renderPlayers() {
       tab === 'bans' || tab === 'ipBans' ? t('players.unban') : t('players.remove'));
     del.addEventListener('click', async () => {
       const r = await api.players.mutate(tab, 'remove', label);
-      if (r.ok) { toast(t('players.removed', { name: label })); setTimeout(refreshPlayers, 400); }
-      else toast(r.error, 'error');
+      if (r.ok) {
+        toast(t(r.needsRestart ? 'players.removedRestart' : 'players.removed', { name: label }),
+          r.needsRestart ? 'warn' : 'ok');
+        setTimeout(refreshPlayers, 400);
+      } else toast(errText(r.error), 'error');
     });
 
     const actions = el('div', 'row-actions');
@@ -646,9 +649,10 @@ async function addPlayer() {
   $('plAdd').disabled = false;
   if (r.ok) {
     input.value = '';
-    toast(t('players.added', { name: value }));
+    toast(t(r.needsRestart ? 'players.addedRestart' : 'players.added', { name: value }),
+      r.needsRestart ? 'warn' : 'ok');
     setTimeout(refreshPlayers, 500);
-  } else toast(r.error, 'error');
+  } else toast(errText(r.error), 'error');
 }
 $('plAdd').addEventListener('click', addPlayer);
 $('plInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addPlayer(); });
@@ -1720,7 +1724,7 @@ function renderPerf(sample) {
 
   // Ticks per second: 20 is the target, so the bar fills from there down.
   const tpsEl = $('perfTps');
-  if (sample.tps == null) {
+  if (!Number.isFinite(sample.tps)) {
     tpsEl.textContent = t('perf.unknown');
     tpsEl.className = 'perf-value unknown';
     $('perfTpsBar').style.width = '0%';
@@ -1741,7 +1745,7 @@ function renderPerf(sample) {
 
   // Milliseconds per tick: 50 ms is the budget for one tick.
   const msptEl = $('perfMspt');
-  if (sample.mspt == null) {
+  if (!Number.isFinite(sample.mspt)) {
     msptEl.textContent = t('perf.unknown');
     msptEl.className = 'perf-value unknown';
     $('perfMsptBar').style.width = '0%';
@@ -1757,9 +1761,10 @@ function renderPerf(sample) {
   $('perfRam').className = `perf-value num ${ramPct > 90 ? 'hot' : ramPct > 75 ? 'warn' : ''}`;
   gradeBar($('perfRamBar'), ramPct, 75, 90);
 
-  if (sample.cpuPercent == null) {
+  if (!Number.isFinite(sample.cpuPercent)) {
     $('perfCpu').textContent = '—';
     $('perfCpu').className = 'perf-value num';
+    $('perfCpuBar').style.width = '0%';
   } else {
     $('perfCpu').textContent = `${sample.cpuPercent.toFixed(0)} %`;
     $('perfCpu').className = `perf-value num ${sample.cpuPercent > 90 ? 'hot' : sample.cpuPercent > 70 ? 'warn' : ''}`;

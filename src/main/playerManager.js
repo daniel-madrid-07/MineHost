@@ -109,6 +109,10 @@ async function mutate({ serverPath, list, action, value, opts = {}, isRunning, s
     return { ok: false, error: 'Nombre de Minecraft no válido (1-16 letras, números o _).' };
   }
 
+  // While the server owns these files it rewrites them on shutdown, so live
+  // changes must go through commands. If the console is unreachable — an
+  // adopted server, say — fall back to editing the file and tell the caller
+  // that a restart is needed for it to take effect.
   if (isRunning) {
     const cmds = {
       ops:       { add: `op ${name}`,             remove: `deop ${name}` },
@@ -116,9 +120,13 @@ async function mutate({ serverPath, list, action, value, opts = {}, isRunning, s
       bans:      { add: `ban ${name}${opts.reason ? ` ${opts.reason}` : ''}`, remove: `pardon ${name}` },
       ipBans:    { add: `ban-ip ${name}${opts.reason ? ` ${opts.reason}` : ''}`, remove: `pardon-ip ${name}` },
     };
-    sendCommand(cmds[list][action]);
-    if (list === 'whitelist') sendCommand('whitelist reload');
-    return { ok: true, viaCommand: true };
+
+    const sent = sendCommand(cmds[list][action]);
+    if (sent && sent.ok !== false) {
+      if (list === 'whitelist') sendCommand('whitelist reload');
+      return { ok: true, viaCommand: true };
+    }
+    // Command refused; carry on and write the file directly.
   }
 
   const current = readList(serverPath, list);
@@ -128,7 +136,7 @@ async function mutate({ serverPath, list, action, value, opts = {}, isRunning, s
     writeList(serverPath, list, current.filter(
       (e) => String(e[key] || '').toLowerCase() !== name.toLowerCase()
     ));
-    return { ok: true };
+    return { ok: true, needsRestart: isRunning };
   }
 
   if (list === 'ipBans') {
@@ -144,7 +152,7 @@ async function mutate({ serverPath, list, action, value, opts = {}, isRunning, s
       reason: opts.reason || 'Banned by an operator.',
     });
     writeList(serverPath, list, current);
-    return { ok: true };
+    return { ok: true, needsRestart: isRunning };
   }
 
   const profile = await resolveProfile(name, opts.onlineMode !== false);
@@ -170,7 +178,7 @@ async function mutate({ serverPath, list, action, value, opts = {}, isRunning, s
 
   current.push(entry);
   writeList(serverPath, list, current);
-  return { ok: true, resolved: profile };
+  return { ok: true, resolved: profile, needsRestart: isRunning };
 }
 
 module.exports = { readAll, readList, mutate, resolveProfile, offlineUuid };

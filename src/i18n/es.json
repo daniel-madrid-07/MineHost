@@ -422,5 +422,7 @@
   "crash.mods": "El servidor no ha podido arrancar: un mod necesita otra versión. Mira la consola.",
   "crash.port": "El puerto {port} ya está ocupado. Puede que haya otro servidor en marcha.",
   "crash.eula": "Hay que aceptar el EULA de Minecraft para que el servidor arranque.",
-  "crash.unknown": "El servidor se cerró de forma inesperada. En la consola están los detalles."
+  "crash.unknown": "El servidor se cerró de forma inesperada. En la consola están los detalles.",
+  "players.addedRestart": "{name} añadido. Reinicia el servidor para que tenga efecto.",
+  "players.removedRestart": "{name} eliminado. Reinicia el servidor para que tenga efecto."
 }

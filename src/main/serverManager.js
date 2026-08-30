@@ -379,24 +379,27 @@ class ServerManager {
       execFile(
         'powershell',
         ['-NoProfile', '-Command',
-         `$p=Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if($p){"{0};{1}" -f $p.WorkingSet64,$p.TotalProcessorTime.TotalMilliseconds}`],
+         `$p=Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if($p){$i=[System.Globalization.CultureInfo]::InvariantCulture; "{0};{1}" -f $p.WorkingSet64.ToString($i),$p.TotalProcessorTime.TotalMilliseconds.ToString($i)}`],
         { windowsHide: true, timeout: 4000 },
         (err, stdout) => {
           if (err || !stdout.trim()) return;
-          const [ws, cpuMs] = stdout.trim().split(';').map(Number);
-          if (!ws) return;
+          // Tolerate a comma decimal separator in case the invariant format
+          // is ever unavailable, and refuse anything that is not a number.
+          const [ws, cpuMs] = stdout.trim().split(';')
+            .map((v) => Number(String(v).replace(',', '.')));
+          if (!Number.isFinite(ws) || ws <= 0) return;
 
           const now = Date.now();
           let cpuPercent = null;
-          if (lastCpu) {
+          if (lastCpu && Number.isFinite(cpuMs)) {
             const deltaCpu = cpuMs - lastCpu.cpuMs;
             const deltaWall = now - lastCpu.at;
-            if (deltaWall > 0) {
-              cpuPercent = Math.max(0, Math.min(100,
-                (deltaCpu / (deltaWall * os.cpus().length)) * 100));
+            if (deltaWall > 0 && deltaCpu >= 0) {
+              const pct = (deltaCpu / (deltaWall * os.cpus().length)) * 100;
+              if (Number.isFinite(pct)) cpuPercent = Math.max(0, Math.min(100, pct));
             }
           }
-          lastCpu = { cpuMs, at: now };
+          if (Number.isFinite(cpuMs)) lastCpu = { cpuMs, at: now };
 
           const sample = {
             ts: now,
@@ -456,7 +459,8 @@ class ServerManager {
     if (this.status !== 'running' || !this.proc) return;
     const platform = this.opts?.platform;
     const cmd = platform === 'paper' || platform === 'purpur' ? 'tps'
-      : platform === 'neoforge' || platform === 'forge' ? 'forge tps'
+      : platform === 'neoforge' ? 'neoforge tps'
+      : platform === 'forge' ? 'forge tps'
       : null;
     if (!cmd) return;
 
