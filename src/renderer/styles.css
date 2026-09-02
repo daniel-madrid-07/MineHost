@@ -982,3 +982,40 @@ input[type="range"]:active::-webkit-slider-thumb { cursor: grabbing; transform: 
 }
 .spark { width: 100%; height: 48px; display: block; }
 .spark path { transition: d var(--dur-slow) var(--ease-out); }
+
+/* Player chips carry their own actions, so they need room to breathe. */
+.player-tag { padding: 5px 6px 5px 10px; gap: 9px; }
+.player-name { font-weight: 500; }
+.player-actions { display: flex; gap: 3px; }
+.player-actions .btn { height: 24px; padding: 0 8px; font-size: 11.5px; }
+
+/* Quieter than the full danger button: destructive, but not shouting. */
+.btn-danger-quiet { background: var(--surface-2); color: var(--ink-subtle); border-color: var(--hairline); }
+.btn-danger-quiet:hover:not(:disabled) {
+  background: var(--danger-soft); color: #F08A83; border-color: rgba(229, 72, 77, 0.3);
+}
+
+.player-face {
+  width: 24px; height: 24px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  /* Minecraft skins are 8x8 art; smoothing them turns faces to mush. */
+  image-rendering: pixelated;
+  background: var(--surface-3);
+}
+
+/* ---------------------------- Command shortcuts --------------------------- */
+
+.shortcuts {
+  display: flex; flex-wrap: wrap; gap: var(--s-5);
+  padding: 10px 12px;
+  margin-bottom: var(--s-3);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+}
+.shortcut-group { display: flex; align-items: center; gap: var(--s-2); }
+.shortcut-label { font-size: 11px; color: var(--ink-subtle); margin-right: 2px; }
+.shortcuts .chip { height: 25px; padding: 0 10px; font-size: 11.5px; }
+
+.choice-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }

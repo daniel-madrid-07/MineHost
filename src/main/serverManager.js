@@ -346,8 +346,7 @@ class ServerManager {
   }
 
   _cleanup() {
-    clearInterval(this.statsTimer);
-    clearInterval(this.tpsTimer);
+    this._stopStats();
     clearInterval(this.watchTimer);
     this.watchTimer = null;
     this.external = null;
@@ -365,68 +364,112 @@ class ServerManager {
     this._setState('stopped');
   }
 
-  /** Samples the Java process for CPU and memory using Windows tooling. */
+  /**
+   * Samples the Java process for CPU and memory.
+   *
+   * The naive approach — one `powershell` call per sample — cost about 107 ms
+   * of process start-up every three seconds, roughly two minutes of CPU per
+   * hour spent purely on measuring. Node cannot read another process's counters
+   * itself, so instead a single PowerShell stays open and prints a reading on
+   * its own schedule. One process for the whole session rather than 1200/hour.
+   */
   _startStats() {
-    clearInterval(this.statsTimer);
+    this._stopStats();
+
     const pid = this.proc?.pid;
     if (!pid) return;
 
     const totalRamMb = os.totalmem() / 1048576;
     let lastCpu = null;
+    let idleSince = null;
 
-    const sample = () => {
-      if (!this.proc) return;
-      execFile(
-        'powershell',
-        ['-NoProfile', '-Command',
-         `$p=Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if($p){$i=[System.Globalization.CultureInfo]::InvariantCulture; "{0};{1}" -f $p.WorkingSet64.ToString($i),$p.TotalProcessorTime.TotalMilliseconds.ToString($i)}`],
-        { windowsHide: true, timeout: 4000 },
-        (err, stdout) => {
-          if (err || !stdout.trim()) return;
-          // Tolerate a comma decimal separator in case the invariant format
-          // is ever unavailable, and refuse anything that is not a number.
-          const [ws, cpuMs] = stdout.trim().split(';')
-            .map((v) => Number(String(v).replace(',', '.')));
-          if (!Number.isFinite(ws) || ws <= 0) return;
+    // Loops inside PowerShell and writes one line per reading. Invariant
+    // formatting keeps the decimal separator predictable on any locale.
+    const script = `
+      $i = [System.Globalization.CultureInfo]::InvariantCulture
+      while ($true) {
+        $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
+        if (-not $p) { break }
+        "{0};{1}" -f $p.WorkingSet64.ToString($i), $p.TotalProcessorTime.TotalMilliseconds.ToString($i)
+        Start-Sleep -Milliseconds $env:MH_SAMPLE_MS
+      }
+    `;
 
-          const now = Date.now();
-          let cpuPercent = null;
-          if (lastCpu && Number.isFinite(cpuMs)) {
-            const deltaCpu = cpuMs - lastCpu.cpuMs;
-            const deltaWall = now - lastCpu.at;
-            if (deltaWall > 0 && deltaCpu >= 0) {
-              const pct = (deltaCpu / (deltaWall * os.cpus().length)) * 100;
-              if (Number.isFinite(pct)) cpuPercent = Math.max(0, Math.min(100, pct));
-            }
+    let monitor;
+    try {
+      monitor = spawn('powershell', ['-NoProfile', '-Command', script], {
+        windowsHide: true,
+        env: { ...process.env, MH_SAMPLE_MS: '3000' },
+      });
+    } catch (_) {
+      return;
+    }
+    this.statsProc = monitor;
+
+    let buffer = '';
+    monitor.stdout.on('data', (chunk) => {
+      buffer += chunk.toString();
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+
+        const [ws, cpuMs] = line.trim().split(';')
+          .map((v) => Number(String(v).replace(',', '.')));
+        if (!Number.isFinite(ws) || ws <= 0) continue;
+
+        const now = Date.now();
+        let cpuPercent = null;
+        if (lastCpu && Number.isFinite(cpuMs)) {
+          const deltaCpu = cpuMs - lastCpu.cpuMs;
+          const deltaWall = now - lastCpu.at;
+          if (deltaWall > 0 && deltaCpu >= 0) {
+            const pct = (deltaCpu / (deltaWall * os.cpus().length)) * 100;
+            if (Number.isFinite(pct)) cpuPercent = Math.max(0, Math.min(100, pct));
           }
-          if (Number.isFinite(cpuMs)) lastCpu = { cpuMs, at: now };
-
-          const sample = {
-            ts: now,
-            ramMb: Math.round(ws / 1048576),
-            ramPercent: Math.round((ws / 1048576 / totalRamMb) * 100),
-            cpuPercent: cpuPercent === null ? null : Math.round(cpuPercent * 10) / 10,
-            players: this.players.length,
-            tps: this.tps,
-            mspt: this.mspt,
-          };
-
-          // Roughly an hour at one sample every three seconds.
-          this.history.push(sample);
-          if (this.history.length > 1200) this.history.shift();
-
-          this.onStats?.(sample);
         }
-      );
-    };
+        if (Number.isFinite(cpuMs)) lastCpu = { cpuMs, at: now };
 
-    sample();
-    this.statsTimer = setInterval(sample, 3000);
+        const sample = {
+          ts: now,
+          ramMb: Math.round(ws / 1048576),
+          ramPercent: Math.round((ws / 1048576 / totalRamMb) * 100),
+          cpuPercent: cpuPercent === null ? null : Math.round(cpuPercent * 10) / 10,
+          players: this.players.length,
+          tps: this.tps,
+          mspt: this.mspt,
+        };
+
+        // Roughly an hour of history at one sample every three seconds.
+        this.history.push(sample);
+        if (this.history.length > 1200) this.history.shift();
+
+        this.onStats?.(sample);
+
+        // Nobody playing and nothing happening: check back far less often.
+        const quiet = this.players.length === 0 && (cpuPercent === null || cpuPercent < 8);
+        idleSince = quiet ? (idleSince || now) : null;
+      }
+    });
+
+    monitor.on('error', () => { this.statsProc = null; });
+    monitor.on('close', () => { this.statsProc = null; });
 
     // The tick-rate command is chatty, so ask far less often than we sample.
-    clearInterval(this.tpsTimer);
     this.tpsTimer = setInterval(() => this._pollTps(), 15000);
     setTimeout(() => this._pollTps(), 4000);
+  }
+
+  _stopStats() {
+    clearInterval(this.statsTimer);
+    clearInterval(this.tpsTimer);
+    this.statsTimer = null;
+    this.tpsTimer = null;
+    if (this.statsProc) {
+      try { this.statsProc.kill(); } catch (_) {}
+      this.statsProc = null;
+    }
   }
 
   getHistory() {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; img-src 'self' data: https://cdn.modrinth.com; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'" />
+        content="default-src 'self'; img-src 'self' data: https://cdn.modrinth.com https://mc-heads.net https://minotar.net; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'" />
   <title>MineHost</title>
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="styles.css" />
@@ -796,6 +796,43 @@
       <div class="notice" id="externalNotice" hidden>
         <svg class="ic"><use href="#i-warn"/></svg>
         <span data-i18n="server.externalHint">This server was started elsewhere.</span>
+      </div>
+
+      <div class="shortcuts" id="shortcuts">
+        <div class="shortcut-group">
+          <span class="shortcut-label" data-i18n="cmd.time">Time</span>
+          <button class="chip" data-cmd="time set day" data-i18n="cmd.day">Day</button>
+          <button class="chip" data-cmd="time set noon" data-i18n="cmd.noon">Noon</button>
+          <button class="chip" data-cmd="time set night" data-i18n="cmd.night">Night</button>
+        </div>
+
+        <div class="shortcut-group">
+          <span class="shortcut-label" data-i18n="cmd.weather">Weather</span>
+          <button class="chip" data-cmd="weather clear" data-i18n="cmd.clear">Clear</button>
+          <button class="chip" data-cmd="weather rain" data-i18n="cmd.rain">Rain</button>
+          <button class="chip" data-cmd="weather thunder" data-i18n="cmd.thunder">Storm</button>
+        </div>
+
+        <div class="shortcut-group">
+          <span class="shortcut-label" data-i18n="cmd.difficulty">Difficulty</span>
+          <button class="chip" data-cmd="difficulty peaceful" data-i18n="cmd.peaceful">Peaceful</button>
+          <button class="chip" data-cmd="difficulty normal" data-i18n="cmd.normal">Normal</button>
+          <button class="chip" data-cmd="difficulty hard" data-i18n="cmd.hard">Hard</button>
+        </div>
+
+        <div class="shortcut-group">
+          <span class="shortcut-label" data-i18n="cmd.players">Players</span>
+          <button class="chip" data-action="tp" data-i18n="cmd.teleport">Teleport</button>
+          <button class="chip" data-action="gamemode" data-i18n="cmd.gamemode">Game mode</button>
+          <button class="chip" data-action="give" data-i18n="cmd.heal">Heal</button>
+        </div>
+
+        <div class="shortcut-group">
+          <span class="shortcut-label" data-i18n="cmd.server">Server</span>
+          <button class="chip" data-cmd="save-all" data-i18n="cmd.save">Save now</button>
+          <button class="chip" data-action="say" data-i18n="cmd.say">Announce</button>
+          <button class="chip" data-cmd="list" data-i18n="cmd.list">Who is on</button>
+        </div>
       </div>
 
       <div class="console" id="console" role="log"></div>

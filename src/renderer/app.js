@@ -218,6 +218,104 @@ $('cmdForm').addEventListener('submit', async (e) => {
   input.value = '';
 });
 
+
+/* ----------------------------- Command shortcuts -------------------------- */
+
+/** Lets the user pick a player from those online. */
+function pickPlayer(title, exclude = null) {
+  const options = S.state.players.filter((p) => p !== exclude);
+  if (!options.length) {
+    toast(t('cmd.nobodyOnline'), 'warn');
+    return Promise.resolve(null);
+  }
+  return chooseFrom(title, options);
+}
+
+/** A small list dialog, reusing the prompt modal shell. */
+function chooseFrom(title, options) {
+  return new Promise((resolve) => {
+    $('pmTitle').textContent = title;
+
+    const input = $('pmInput');
+    input.hidden = true;
+
+    const list = el('div', 'choice-list');
+    for (const value of options) {
+      const btn = el('button', 'pick');
+      const main = el('div', 'pick-main');
+      main.append(el('b', null, value));
+      btn.append(main, icon('check'));
+      btn.addEventListener('click', () => done(value));
+      list.append(btn);
+    }
+    input.after(list);
+    $('promptScrim').hidden = false;
+
+    const done = (v) => {
+      $('promptScrim').hidden = true;
+      input.hidden = false;
+      list.remove();
+      $('pmYes').removeEventListener('click', ok);
+      $('pmNo').removeEventListener('click', no);
+      resolve(v);
+    };
+    const ok = () => done(null);
+    const no = () => done(null);
+    $('pmYes').addEventListener('click', ok);
+    $('pmNo').addEventListener('click', no);
+  });
+}
+
+async function runShortcut(cmd) {
+  const r = await api.server.command(cmd);
+  if (!r.ok) return toast(errText(r.error), 'error');
+  toast(`/${cmd}`);
+}
+
+$('shortcuts').addEventListener('click', async (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+
+  if (S.state.status !== 'running') return toast(t('cmd.needsRunning'), 'warn');
+  if (S.state.external) return toast(errText('EXTERNAL_NO_CONSOLE'), 'warn');
+
+  // Straightforward commands carry their text on the button.
+  if (chip.dataset.cmd) return runShortcut(chip.dataset.cmd);
+
+  const action = chip.dataset.action;
+
+  if (action === 'tp') {
+    const who = await pickPlayer(t('cmd.tpWho'));
+    if (!who) return;
+    const target = await pickPlayer(t('cmd.tpWhere'), who);
+    if (!target) return;
+    return runShortcut(`tp ${who} ${target}`);
+  }
+
+  if (action === 'gamemode') {
+    const who = await pickPlayer(t('cmd.gamemodeWho'));
+    if (!who) return;
+    const mode = await chooseFrom(t('cmd.gamemodeWhich'),
+      ['survival', 'creative', 'adventure', 'spectator']);
+    if (!mode) return;
+    return runShortcut(`gamemode ${mode} ${who}`);
+  }
+
+  if (action === 'give') {
+    const who = await pickPlayer(t('cmd.healWho'));
+    if (!who) return;
+    // Restoring health and hunger together is what people mean by "heal".
+    await runShortcut(`effect give ${who} minecraft:instant_health 1 10 true`);
+    return runShortcut(`effect give ${who} minecraft:saturation 1 10 true`);
+  }
+
+  if (action === 'say') {
+    const message = await promptText(t('cmd.sayWhat'), '');
+    if (!message) return;
+    return runShortcut(`say ${message}`);
+  }
+});
+
 /* ------------------------------ Server state ------------------------------ */
 
 const statusLabel = (k) => t(`status.${k}`);
@@ -270,13 +368,67 @@ function renderServer() {
   } else {
     for (const p of players) {
       const tag = el('div', 'player-tag');
-      tag.append(el('span', 'pip'), el('span', null, p));
+
+      // The player's own skin makes the list scannable at a glance.
+      const face = document.createElement('img');
+      face.className = 'player-face';
+      face.width = 24;
+      face.height = 24;
+      face.alt = '';
+      face.loading = 'lazy';
+      face.src = `https://mc-heads.net/avatar/${encodeURIComponent(p)}/24`;
+      face.addEventListener('error', () => {
+        // One retry on a second service, then fall back to the status dot.
+        if (face.dataset.retried) {
+          face.replaceWith(el('span', 'pip'));
+          return;
+        }
+        face.dataset.retried = '1';
+        face.src = `https://minotar.net/helm/${encodeURIComponent(p)}/24.png`;
+      }, { once: false });
+
+      tag.append(face, el('span', 'player-name', p));
+
+      const isOp = S.players.ops?.some(
+        (o) => String(o.name || '').toLowerCase() === p.toLowerCase()
+      );
+
+      const actions = el('div', 'player-actions');
+
+      // Operator: a toggle, so one click grants and the next takes it away.
+      const op = el('button', `btn btn-quiet btn-sm ${isOp ? 'is-on' : ''}`,
+        t(isOp ? 'panel.deop' : 'panel.op'));
+      op.title = t(isOp ? 'panel.deopHint' : 'panel.opHint');
+      op.addEventListener('click', async () => {
+        op.disabled = true;
+        const r = await api.players.mutate('ops', isOp ? 'remove' : 'add', p);
+        op.disabled = false;
+        if (!r.ok) return toast(errText(r.error), 'error');
+        toast(t(isOp ? 'players.removed' : 'players.added', { name: p }),
+          r.needsRestart ? 'warn' : 'ok');
+        await refreshPlayers();
+        renderServer();
+      });
+
       const kick = el('button', 'btn btn-quiet btn-sm', t('panel.kick'));
       kick.addEventListener('click', async () => {
         await api.players.kick(p, t('players.kickReason'));
         toast(t('players.kicked', { name: p }));
       });
-      tag.append(kick);
+
+      // Banning is not undone by accident, so it asks first.
+      const ban = el('button', 'btn btn-quiet btn-sm btn-danger-quiet', t('panel.ban'));
+      ban.addEventListener('click', async () => {
+        if (!await confirmAsk(t('panel.banTitle'),
+          t('panel.banText', { name: p }), t('panel.ban'))) return;
+        const r = await api.players.mutate('bans', 'add', p);
+        if (!r.ok) return toast(errText(r.error), 'error');
+        toast(t('players.banned', { name: p }), r.needsRestart ? 'warn' : 'ok');
+        await refreshPlayers();
+      });
+
+      actions.append(op, kick, ban);
+      tag.append(actions);
       list.append(tag);
     }
   }
@@ -2190,6 +2342,8 @@ async function reloadActive() {
 
   S.state = await api.server.state();
   S.tunnel = await api.ngrok.state();
+  // Needed so the dashboard can show who is already an operator.
+  if (S.server?.serverPath) S.players = await api.players.read(S.server.serverPath);
 
   renderServer();
   renderExposure();
