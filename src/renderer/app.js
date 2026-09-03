@@ -272,17 +272,31 @@ async function runShortcut(cmd) {
   toast(`/${cmd}`);
 }
 
+function closeMenus() {
+  document.querySelectorAll('.menu.open').forEach((m) => m.classList.remove('open'));
+}
+
 $('shortcuts').addEventListener('click', async (e) => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
+  const trigger = e.target.closest('.menu-trigger');
+  if (trigger) {
+    const menu = trigger.closest('.menu');
+    const wasOpen = menu.classList.contains('open');
+    closeMenus();
+    if (!wasOpen) menu.classList.add('open');
+    return;
+  }
+
+  const item = e.target.closest('.menu-list button');
+  if (!item) return;
+  closeMenus();
 
   if (S.state.status !== 'running') return toast(t('cmd.needsRunning'), 'warn');
   if (S.state.external) return toast(errText('EXTERNAL_NO_CONSOLE'), 'warn');
 
   // Straightforward commands carry their text on the button.
-  if (chip.dataset.cmd) return runShortcut(chip.dataset.cmd);
+  if (item.dataset.cmd) return runShortcut(item.dataset.cmd);
 
-  const action = chip.dataset.action;
+  const action = item.dataset.action;
 
   if (action === 'tp') {
     const who = await pickPlayer(t('cmd.tpWho'));
@@ -314,6 +328,10 @@ $('shortcuts').addEventListener('click', async (e) => {
     if (!message) return;
     return runShortcut(`say ${message}`);
   }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.menu')) closeMenus();
 });
 
 /* ------------------------------ Server state ------------------------------ */
@@ -2299,6 +2317,7 @@ $('tourNext').addEventListener('click', () => tour.next());
 $('tourSkip').addEventListener('click', () => tour.finish());
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
+  closeMenus();
   if (!$('tour').hidden) tour.finish();
   else if (!$('wizard').hidden) wizard.close();
   else if (!$('pickerScrim').hidden) $('pickerScrim').hidden = true;

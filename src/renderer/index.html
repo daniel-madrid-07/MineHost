@@ -799,39 +799,64 @@
       </div>
 
       <div class="shortcuts" id="shortcuts">
-        <div class="shortcut-group">
-          <span class="shortcut-label" data-i18n="cmd.time">Time</span>
-          <button class="chip" data-cmd="time set day" data-i18n="cmd.day">Day</button>
-          <button class="chip" data-cmd="time set noon" data-i18n="cmd.noon">Noon</button>
-          <button class="chip" data-cmd="time set night" data-i18n="cmd.night">Night</button>
+        <div class="menu" data-menu="time">
+          <button class="menu-trigger">
+            <span data-i18n="cmd.time">Time</span>
+            <svg class="ic chev"><use href="#i-chev"/></svg>
+          </button>
+          <div class="menu-list">
+            <button data-cmd="time set day" data-i18n="cmd.day">Day</button>
+            <button data-cmd="time set noon" data-i18n="cmd.noon">Noon</button>
+            <button data-cmd="time set night" data-i18n="cmd.night">Night</button>
+          </div>
         </div>
 
-        <div class="shortcut-group">
-          <span class="shortcut-label" data-i18n="cmd.weather">Weather</span>
-          <button class="chip" data-cmd="weather clear" data-i18n="cmd.clear">Clear</button>
-          <button class="chip" data-cmd="weather rain" data-i18n="cmd.rain">Rain</button>
-          <button class="chip" data-cmd="weather thunder" data-i18n="cmd.thunder">Storm</button>
+        <div class="menu" data-menu="weather">
+          <button class="menu-trigger">
+            <span data-i18n="cmd.weather">Weather</span>
+            <svg class="ic chev"><use href="#i-chev"/></svg>
+          </button>
+          <div class="menu-list">
+            <button data-cmd="weather clear" data-i18n="cmd.clear">Clear</button>
+            <button data-cmd="weather rain" data-i18n="cmd.rain">Rain</button>
+            <button data-cmd="weather thunder" data-i18n="cmd.thunder">Storm</button>
+          </div>
         </div>
 
-        <div class="shortcut-group">
-          <span class="shortcut-label" data-i18n="cmd.difficulty">Difficulty</span>
-          <button class="chip" data-cmd="difficulty peaceful" data-i18n="cmd.peaceful">Peaceful</button>
-          <button class="chip" data-cmd="difficulty normal" data-i18n="cmd.normal">Normal</button>
-          <button class="chip" data-cmd="difficulty hard" data-i18n="cmd.hard">Hard</button>
+        <div class="menu" data-menu="difficulty">
+          <button class="menu-trigger">
+            <span data-i18n="cmd.difficulty">Difficulty</span>
+            <svg class="ic chev"><use href="#i-chev"/></svg>
+          </button>
+          <div class="menu-list">
+            <button data-cmd="difficulty peaceful" data-i18n="cmd.peaceful">Peaceful</button>
+            <button data-cmd="difficulty normal" data-i18n="cmd.normal">Normal</button>
+            <button data-cmd="difficulty hard" data-i18n="cmd.hard">Hard</button>
+          </div>
         </div>
 
-        <div class="shortcut-group">
-          <span class="shortcut-label" data-i18n="cmd.players">Players</span>
-          <button class="chip" data-action="tp" data-i18n="cmd.teleport">Teleport</button>
-          <button class="chip" data-action="gamemode" data-i18n="cmd.gamemode">Game mode</button>
-          <button class="chip" data-action="give" data-i18n="cmd.heal">Heal</button>
+        <div class="menu" data-menu="players">
+          <button class="menu-trigger">
+            <span data-i18n="cmd.players">Players</span>
+            <svg class="ic chev"><use href="#i-chev"/></svg>
+          </button>
+          <div class="menu-list">
+            <button data-action="tp" data-i18n="cmd.teleport">Teleport</button>
+            <button data-action="gamemode" data-i18n="cmd.gamemode">Game mode</button>
+            <button data-action="give" data-i18n="cmd.heal">Heal</button>
+          </div>
         </div>
 
-        <div class="shortcut-group">
-          <span class="shortcut-label" data-i18n="cmd.server">Server</span>
-          <button class="chip" data-cmd="save-all" data-i18n="cmd.save">Save now</button>
-          <button class="chip" data-action="say" data-i18n="cmd.say">Announce</button>
-          <button class="chip" data-cmd="list" data-i18n="cmd.list">Who is on</button>
+        <div class="menu" data-menu="server">
+          <button class="menu-trigger">
+            <span data-i18n="cmd.server">Server</span>
+            <svg class="ic chev"><use href="#i-chev"/></svg>
+          </button>
+          <div class="menu-list">
+            <button data-cmd="save-all" data-i18n="cmd.save">Save now</button>
+            <button data-action="say" data-i18n="cmd.say">Announce</button>
+            <button data-cmd="list" data-i18n="cmd.list">Who is on</button>
+          </div>
         </div>
       </div>
 
