@@ -201,7 +201,7 @@ const PLATFORMS = {
     id: 'neoforge',
     name: 'NeoForge',
     kind: 'mods',
-    blurb: 'La opción moderna para mods. Tus amigos necesitan los mismos mods instalados.',
+    blurb: 'platform.neoforge',
     modsDir: 'mods',
     install: 'installer',
     versions: neoforgeVersions,
@@ -212,7 +212,7 @@ const PLATFORMS = {
     id: 'forge',
     name: 'Forge',
     kind: 'mods',
-    blurb: 'El clásico para mods, con el catálogo más amplio en versiones antiguas.',
+    blurb: 'platform.forge',
     modsDir: 'mods',
     install: 'installer',
     versions: forgeVersions,
@@ -223,7 +223,7 @@ const PLATFORMS = {
     id: 'fabric',
     name: 'Fabric',
     kind: 'mods',
-    blurb: 'Ligero y rápido de actualizar. Muy usado para mods de rendimiento.',
+    blurb: 'platform.fabric',
     modsDir: 'mods',
     install: 'jar',
     versions: fabricVersions,
@@ -233,7 +233,7 @@ const PLATFORMS = {
     id: 'paper',
     name: 'Paper',
     kind: 'plugins',
-    blurb: 'Máximo rendimiento con plugins. Tus amigos entran sin instalar nada.',
+    blurb: 'platform.paper',
     modsDir: 'plugins',
     install: 'jar',
     versions: () => paperVersions('paper'),
@@ -243,7 +243,7 @@ const PLATFORMS = {
     id: 'purpur',
     name: 'Purpur',
     kind: 'plugins',
-    blurb: 'Paper con cientos de ajustes extra de jugabilidad. También con plugins.',
+    blurb: 'platform.purpur',
     modsDir: 'plugins',
     install: 'jar',
     versions: purpurVersions,
@@ -256,7 +256,7 @@ const PLATFORMS = {
     id: 'vanilla',
     name: 'Vanilla',
     kind: 'vanilla',
-    blurb: 'Minecraft puro, sin mods ni plugins. Lo más simple y estable.',
+    blurb: 'platform.vanilla',
     modsDir: null,
     install: 'jar',
     versions: vanillaVersions,
@@ -278,9 +278,15 @@ async function listVersions(platformId) {
   return data;
 }
 
-function meta() {
+/**
+ * The platform list for the interface. Blurbs are stored as i18n keys, so a
+ * translator has to resolve them on the way out.
+ *
+ * @param {(key: string) => string} [t]  Defaults to leaving the key in place.
+ */
+function meta(t = (k) => k) {
   return Object.values(PLATFORMS).map(({ id, name, kind, blurb, modsDir }) => ({
-    id, name, kind, blurb, modsDir,
+    id, name, kind, blurb: t(blurb), modsDir,
   }));
 }
 

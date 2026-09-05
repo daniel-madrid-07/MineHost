@@ -15,8 +15,10 @@ const SRC = path.join(__dirname, 'MineHost_logo.png');
 const OUT_SIDEBAR = path.join(__dirname, 'installerSidebar.bmp');
 const OUT_HEADER = path.join(__dirname, 'installerHeader.bmp');
 
-/* Matches the app's own canvas so the installer feels like the same product. */
-const CANVAS = [0x0c, 0x0d, 0x0e];      // BGR
+/* Matches the app's own canvas so the installer feels like the same product.
+   This is also the logo tile's own background, so the artwork sits on the
+   panel seamlessly instead of showing as a lighter square. */
+const CANVAS = [0x14, 0x15, 0x16];      // BGR for #161514
 const ACCENT = [0x44, 0xbf, 0x6b];
 
 function contentBounds(bitmap, w, h) {
@@ -25,7 +27,8 @@ function contentBounds(bitmap, w, h) {
     for (let x = 0; x < w; x++) {
       const i = (y * w + x) * 4;
       const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2], a = bitmap[i + 3];
-      if (a > 24 && !(r > 232 && g > 232 && b > 232)) {
+      // The logo sits on the app's dark canvas, so content is anything above it.
+      if (a > 24 && !(r < 34 && g < 34 && b < 34)) {
         if (y < top) top = y;
         if (y > bottom) bottom = y;
         if (x < left) left = x;

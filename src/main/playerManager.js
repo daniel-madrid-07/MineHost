@@ -104,9 +104,9 @@ function readAll(serverPath) {
  */
 async function mutate({ serverPath, list, action, value, opts = {}, isRunning, sendCommand }) {
   const name = String(value || '').trim();
-  if (!name) return { ok: false, error: 'Escribe un nombre de jugador.' };
+  if (!name) return { ok: false, error: 'PLAYER_NAME_EMPTY' };
   if (list !== 'ipBans' && !/^[A-Za-z0-9_]{1,16}$/.test(name)) {
-    return { ok: false, error: 'Nombre de Minecraft no válido (1-16 letras, números o _).' };
+    return { ok: false, error: 'PLAYER_NAME_INVALID' };
   }
 
   // While the server owns these files it rewrites them on shutdown, so live
@@ -141,9 +141,9 @@ async function mutate({ serverPath, list, action, value, opts = {}, isRunning, s
 
   if (list === 'ipBans') {
     if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(name)) {
-      return { ok: false, error: 'Escribe una dirección IP válida (ej. 192.168.1.20).' };
+      return { ok: false, error: 'IP_INVALID' };
     }
-    if (current.some((e) => e.ip === name)) return { ok: false, error: 'Esa IP ya está baneada.' };
+    if (current.some((e) => e.ip === name)) return { ok: false, error: 'IP_ALREADY_BANNED' };
     current.push({
       ip: name,
       created: stamp(),

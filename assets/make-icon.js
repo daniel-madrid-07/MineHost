@@ -4,8 +4,8 @@
  * Run with Electron (not plain Node) so nativeImage can decode/resize the PNG:
  *   npx electron assets/make-icon.js
  *
- * The source art sits on a white card with generous margins, so it is cropped
- * to the block and re-matted on the app's canvas colour before scaling.
+ * The source art already sits on the app's canvas colour, so this only needs to
+ * crop square around the block and scale it down to each icon size.
  */
 const fs = require('fs');
 const path = require('path');
@@ -15,14 +15,16 @@ const SIZES = [16, 24, 32, 48, 64, 128, 256];
 const SRC = path.join(__dirname, 'MineHost_logo.png');
 const OUT = path.join(__dirname, 'icon.ico');
 
-/** Finds the bounding box of everything that is not near-white. */
+/** Finds the bounding box of the block, ignoring the dark canvas around it. */
 function contentBounds(bitmap, w, h) {
   let top = h, left = w, right = 0, bottom = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = (y * w + x) * 4;
       const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2], a = bitmap[i + 3];
-      if (a > 24 && !(r > 232 && g > 232 && b > 232)) {
+      // The block's own shadowed faces are dark, so the threshold sits just
+      // above the canvas colour rather than at any general notion of "dark".
+      if (a > 24 && !(r < 34 && g < 34 && b < 34)) {
         if (y < top) top = y;
         if (y > bottom) bottom = y;
         if (x < left) left = x;

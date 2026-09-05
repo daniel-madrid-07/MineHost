@@ -1,0 +1,11 @@
+/* Dropzone */
+
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 22px;
+  border: 1.5px dashed var(--hairline-strong);
+  border-radius: var(--r-card);
+  margin-bottom: var(--s-4);
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.dropzone.over { border-color: var(--accent); background: var(--accent-soft); }

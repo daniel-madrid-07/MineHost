@@ -21,11 +21,11 @@ function request(urlPath) {
       (res) => {
         if (res.statusCode === 429) {
           res.resume();
-          return reject(new Error('Modrinth está limitando las peticiones. Espera un momento.'));
+          return reject(new Error('MODRINTH_RATE_LIMITED'));
         }
         if (res.statusCode !== 200) {
           res.resume();
-          return reject(new Error(`Modrinth respondió ${res.statusCode}`));
+          return reject(new Error(`MODRINTH_HTTP:${res.statusCode}`));
         }
         const chunks = [];
         res.on('data', (c) => chunks.push(c));
@@ -36,13 +36,13 @@ function request(urlPath) {
       }
     );
     req.on('error', reject);
-    req.setTimeout(12000, () => req.destroy(new Error('Modrinth no responde.')));
+    req.setTimeout(12000, () => req.destroy(new Error('MODRINTH_UNREACHABLE')));
   });
 }
 
 function download(url, dest, onProgress, redirects = 0) {
   return new Promise((resolve, reject) => {
-    if (redirects > 6) return reject(new Error('Demasiadas redirecciones'));
+    if (redirects > 6) return reject(new Error('TOO_MANY_REDIRECTS'));
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     const file = fs.createWriteStream(dest);
     https.get(url, { headers: { 'User-Agent': UA } }, (res) => {
@@ -56,7 +56,7 @@ function download(url, dest, onProgress, redirects = 0) {
         res.resume();
         file.close();
         fs.rmSync(dest, { force: true });
-        return reject(new Error(`HTTP ${res.statusCode} al descargar`));
+        return reject(new Error(`DOWNLOAD_HTTP:${res.statusCode}`));
       }
       const total = parseInt(res.headers['content-length'] || '0', 10);
       let done = 0;
@@ -78,16 +78,45 @@ function sha1(file) {
   return crypto.createHash('sha1').update(fs.readFileSync(file)).digest('hex');
 }
 
-async function search({ query = '', loader, gameVersion, projectType, offset = 0, limit = 20 }) {
+/* The categories worth offering. Modrinth has more, but these are the ones a
+   server owner actually browses by, and a short list beats an exhaustive one. */
+const CATEGORIES = [
+  'adventure', 'cursed', 'decoration', 'economy', 'equipment', 'food',
+  'game-mechanics', 'library', 'magic', 'management', 'minigame', 'mobs',
+  'optimization', 'social', 'storage', 'technology', 'transportation', 'utility',
+  'worldgen',
+];
+
+/* Modrinth's sort keys, named the way the interface talks about them. */
+const SORTS = ['relevance', 'downloads', 'follows', 'newest', 'updated'];
+
+async function search({
+  query = '', loader, gameVersion, projectType, offset = 0, limit = 20,
+  categories = [], sort, environment, anyVersion = false,
+}) {
   const type = projectType || (PLUGIN_LOADERS.has(loader) ? 'plugin' : 'mod');
   const facets = [[`project_type:${type}`]];
   if (loader) facets.push([`categories:${loader}`]);
-  if (gameVersion) facets.push([`versions:${gameVersion}`]);
+  // Pinning the game version is the sane default, but a user hunting for a mod
+  // that has not been tagged yet needs a way out of it.
+  if (gameVersion && !anyVersion) facets.push([`versions:${gameVersion}`]);
+
+  // Several categories at once read as "any of these", which is how a person
+  // expects a filter list to behave.
+  const picked = categories.filter((c) => CATEGORIES.includes(c));
+  if (picked.length) facets.push(picked.map((c) => `categories:${c}`));
+
+  // A dedicated server only ever runs the server half, so "required" and
+  // "optional" both count as usable; only "unsupported" is dead weight.
+  if (environment === 'server') facets.push(['server_side:required', 'server_side:optional']);
+  if (environment === 'client') facets.push(['server_side:unsupported']);
+
+  const index = SORTS.includes(sort) ? sort : (query ? 'relevance' : 'downloads');
 
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
-    index: query ? 'relevance' : 'downloads',
+    index,
     facets: JSON.stringify(facets),
   });
   if (query) params.set('query', query);
@@ -95,6 +124,8 @@ async function search({ query = '', loader, gameVersion, projectType, offset = 0
   const data = await request(`/search?${params}`);
   return {
     total: data.total_hits,
+    offset,
+    limit,
     hits: (data.hits || []).map((h) => ({
       id: h.project_id,
       slug: h.slug,
@@ -102,8 +133,12 @@ async function search({ query = '', loader, gameVersion, projectType, offset = 0
       description: h.description,
       author: h.author,
       downloads: h.downloads,
+      follows: h.follows,
+      updated: h.date_modified,
       icon: h.icon_url,
       categories: h.categories,
+      versions: h.versions,
+      latestVersion: h.latest_version,
       clientOnly: h.client_side === 'required' && h.server_side === 'unsupported',
       serverSide: h.server_side,
     })),
@@ -163,7 +198,7 @@ async function install({ projectId, loader, gameVersion, targetDir, onProgress }
     const resolved = await resolveVersion(id, loader, gameVersion);
     if (!resolved) {
       if (!isDependency) {
-        return { ok: false, error: `No hay una versión compatible con ${loader} ${gameVersion}.` };
+        return { ok: false, error: `NO_COMPATIBLE_VERSION:${loader} ${gameVersion}` };
       }
       skipped.push(id);
       continue;
@@ -180,7 +215,7 @@ async function install({ projectId, loader, gameVersion, targetDir, onProgress }
 
       if (resolved.sha1 && sha1(dest) !== resolved.sha1) {
         fs.rmSync(dest, { force: true });
-        return { ok: false, error: `El archivo ${resolved.filename} llegó corrupto. Inténtalo de nuevo.` };
+        return { ok: false, error: `DOWNLOAD_CORRUPT:${resolved.filename}` };
       }
       installed.push(resolved.filename);
     }
@@ -210,4 +245,4 @@ async function project(idOrSlug) {
   };
 }
 
-module.exports = { search, install, project, resolveVersion, PLUGIN_LOADERS };
+module.exports = { search, install, project, resolveVersion, PLUGIN_LOADERS, CATEGORIES, SORTS };

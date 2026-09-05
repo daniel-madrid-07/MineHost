@@ -4,17 +4,19 @@
  */
 
 const WARNINGS = [
-  { at: 300, text: 'El servidor se reiniciará en 5 minutos.' },
-  { at: 60,  text: 'El servidor se reiniciará en 1 minuto.' },
-  { at: 10,  text: 'Reiniciando en 10 segundos…' },
+  { at: 300, key: 'restart.in5min' },
+  { at: 60,  key: 'restart.in1min' },
+  { at: 10,  key: 'restart.in10sec' },
 ];
 
 class Scheduler {
-  constructor({ onLog, runRestart, runBackup, isRunning }) {
+  constructor({ onLog, runRestart, runBackup, isRunning, t }) {
     this.onLog = onLog;
     this.runRestart = runRestart;
     this.runBackup = runBackup;
     this.isRunning = isRunning;
+    // Announcements go to players in chat, so they follow the app's language.
+    this.t = t || ((k) => k);
 
     this.config = { restart: { enabled: false, time: '05:00' }, backup: { enabled: false, everyHours: 6 } };
     this.timer = null;
@@ -82,7 +84,7 @@ class Scheduler {
       const key = `${target}-${w.at}`;
       if (secondsLeft <= w.at && secondsLeft > w.at - 20 && this.lastTickKey !== key) {
         this.lastTickKey = key;
-        this.runRestart({ announceOnly: true, message: w.text });
+        this.runRestart({ announceOnly: true, message: this.t(w.key) });
       }
     }
 

@@ -1,0 +1,63 @@
+/* Modals */
+
+.modal-scrim {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(8, 7, 6, 0.66);
+  display: grid; place-items: center;
+  animation: fadeIn var(--dur-base) var(--ease-out);
+}
+.modal-scrim[hidden] { display: none; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  width: 470px; max-width: calc(100vw - 48px);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-modal);
+  overflow: hidden;
+  animation: modalIn var(--dur-slow) var(--ease-out);
+}
+@keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }
+
+.modal-wizard { width: 540px; }
+.modal-task { width: 400px; }
+
+.modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 8px; }
+.modal-body > h2 { margin-bottom: 2px; }
+.modal-body > p { max-width: 58ch; }
+
+.modal-foot {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 12px 16px;
+  background: var(--surface-1);
+  border-top: 1px solid var(--hairline);
+}
+.grow { flex: 1; }
+
+.wz-progress { height: 2px; background: var(--hairline); }
+.wz-progress > i {
+  display: block; height: 100%; width: 33%;
+  background: var(--accent);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+.wz-list { display: flex; flex-direction: column; gap: 4px; margin-top: var(--s-3); }
+
+.pick {
+  display: flex; align-items: center; gap: var(--s-4);
+  padding: 11px 13px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-row);
+  cursor: pointer;
+  text-align: left;
+  font: inherit; color: var(--ink);
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.pick:hover { background: var(--surface-2); border-color: var(--hairline-strong); }
+.pick.sel { border-color: var(--accent-border); background: var(--accent-soft); }
+.pick-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pick-main b { font-size: 13px; font-weight: 500; }
+.pick-main span { font-size: 11.5px; color: var(--ink-subtle); }
+.pick .ic { color: var(--accent); opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.pick.sel .ic { opacity: 1; }

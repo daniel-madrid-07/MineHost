@@ -1,0 +1,10 @@
+/* Skeleton */
+
+.skeleton {
+  height: 44px;
+  border-radius: var(--r-row);
+  background: linear-gradient(90deg, var(--surface-1) 0%, var(--surface-2) 50%, var(--surface-1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s var(--ease-io) infinite;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }

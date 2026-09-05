@@ -2,132 +2,150 @@
 
 # MineHost
 
-**Un panel tipo Aternos, pero el servidor corre en tu propio PC.**
+**An Aternos-style panel, except the server runs on your own PC.**
 
-Instala, configura y comparte un servidor de Minecraft sin tocar el router,
-sin consolas y sin editar archivos de configuración a mano.
+Install, configure and share a Minecraft server without touching the router,
+without a terminal, and without hand-editing config files.
 
 </div>
 
 ---
 
-## Por qué existe
+## Why it exists
 
-Aternos es cómodo, pero hay colas, la RAM está limitada y tu mundo vive en un servidor ajeno. Montarlo en casa da mejor rendimiento y control total, pero implica pelearse con instaladores, argumentos de la JVM, `server.properties` y port forwarding, que muchas veces ni siquiera es posible: routers a los que no tienes acceso, o CGNAT del operador.
+Aternos is convenient, but there are queues, the RAM is capped, and your world lives on somebody else's machine. Running it at home gives better performance and full control — at the cost of wrestling with installers, JVM arguments, `server.properties` and port forwarding, which often is not even possible: routers you have no access to, or carrier-grade NAT.
 
-MineHost cubre ese hueco. Tu hardware y tus mundos, con la comodidad de un panel web.
+MineHost fills that gap. Your hardware and your worlds, with the convenience of a hosted panel.
 
-## Qué hace
+## What it does
 
-**Instalación automática.** Elige plataforma y versión; MineHost descarga el servidor, lo instala y acepta el EULA. Si no tienes la versión de Java correcta, también la descarga (una copia privada, sin tocar tu Java del sistema).
+**Automatic installation.** Pick a platform and a version; MineHost downloads the server, installs it, and accepts the EULA. If you do not have the right Java version it fetches that too — a private copy, leaving your system Java alone.
 
-**Seis plataformas.** NeoForge, Forge, Fabric, Paper, Purpur y Vanilla. La app te explica en cada caso si tus amigos necesitarán instalar mods o no.
+**Six platforms.** NeoForge, Forge, Fabric, Paper, Purpur and Vanilla. The app tells you in each case whether your friends will need to install mods.
 
-**Mods y plugins.** Buscador de Modrinth integrado con resolución automática de dependencias y verificación SHA-1, o arrastra tus propios `.jar`. Activa y desactiva sin borrar nada.
+**Mods and plugins.** A built-in Modrinth browser with filters by category, sort order and side, automatic dependency resolution and SHA-1 verification — or drag in your own `.jar` files. Enable and disable without deleting anything.
 
-**Mundos.** Varios mundos en la misma carpeta, cambiar el activo, importar y exportar en `.zip`, y reiniciar el Nether o el End por separado.
+**Worlds.** Several worlds in the same folder, switching the active one, importing and exporting `.zip` archives, and resetting the Nether or the End on their own.
 
-**Jugadores.** Operadores, lista blanca, expulsados e IPs bloqueadas. Con el servidor encendido se aplican por comando; apagado, editando los JSON. Los nombres se resuelven contra Mojang.
+**Players.** Operators, whitelist, bans and blocked IPs. With the server running these apply by command; with it stopped, by editing the JSON files. Names are resolved against Mojang, and each player's face is shown next to their name.
 
-**Copias de seguridad.** Manuales, automáticas al apagar o cada X horas, con rotación. Se hacen con `save-off` / `save-all flush` para que nunca salga un mundo corrupto, y al restaurar el mundo actual se aparta en vez de borrarse.
+**Backups.** Manual, automatic on shutdown, or every few hours, with rotation. They run `save-off` / `save-all flush` so a world is never captured mid-write, and restoring moves the current world aside rather than deleting it.
 
-**Ajustes visuales.** Las 43 opciones de `server.properties` y 28 reglas de juego, agrupadas por lo que hacen y explicadas en español.
+**Visual settings.** All 43 `server.properties` options and 28 game rules, grouped by what they actually do and explained in plain language — in every supported language.
 
-**Consola en vivo.** Registro con filtro y colores por nivel, y envío de comandos.
+**Live console.** A filterable log coloured by level, a command box, and dropdown shortcuts for the things you reach for most: time, weather, difficulty, teleporting, game modes and announcements.
 
-**Acceso desde fuera.** Túnel de ngrok integrado: descarga el binario, guarda tu authtoken y publica la dirección con un botón para copiarla.
+**Access from outside.** A built-in ngrok tunnel: it downloads the binary, stores your authtoken and publishes the address with a button to copy it. Port forwarding and LAN-only are supported too.
 
-**Vigilancia.** Uso de RAM y CPU en directo, reinicio automático si el servidor se cae y reinicios programados con aviso previo por el chat.
+**Watching.** Live RAM and CPU, automatic restart if the server crashes, and scheduled restarts that warn players in chat first.
 
-## Instalación
+**Seven languages.** English, Spanish, Portuguese, French, German, Italian and Russian — including every settings caption.
 
-1. Descarga el instalador desde [Releases](../../releases).
-2. Ejecuta `MineHost Setup 1.1.0.exe`.
-3. Ábrelo desde el menú de inicio.
+## Installing
 
-Windows mostrará un aviso de editor desconocido: el ejecutable no está firmado porque un certificado cuesta dinero. Pulsa **Más información › Ejecutar de todas formas**.
+1. Download the installer from [Releases](../../releases).
+2. Run `MineHost Setup 1.0.0.exe`.
+3. Open it from the Start menu.
 
-> **Antivirus:** MineHost descarga `ngrok.exe` para el túnel. Algunos antivirus lo marcan por precaución, porque también lo usa software malicioso. Si Windows Defender lo bloquea, añade una excepción para `%USERPROFILE%\.minehost`.
+Windows will warn about an unknown publisher: the executable is not signed, because a certificate costs money. Click **More info › Run anyway**.
 
-## Primeros pasos
+> **Antivirus:** MineHost downloads `ngrok.exe` for the tunnel. Some antivirus products flag it out of caution, because malicious software uses tunnelling too. If Windows Defender blocks it, add an exclusion for `%USERPROFILE%\.minehost`.
 
-La primera vez, un asistente de tres pasos te pregunta dónde guardar el servidor, qué plataforma quieres y qué versión. Al terminar, un tutorial guiado señala las cuatro cosas que importan.
+## Getting started
 
-Para que entren desde fuera de tu red hace falta una cuenta gratuita de ngrok: la app te lleva a la página, guardas el authtoken y ya está. Ngrok pide verificar una tarjeta para habilitar túneles TCP en el plan gratuito; es un requisito suyo contra el abuso, no cobra nada.
+The first time you open it, a three-step wizard asks where to keep the server, which platform you want and which version. When it finishes, a guided tour points out the four things that matter.
 
-Cuando el servidor esté en marcha:
-- **Tú**, desde este mismo PC, entras con `localhost`.
-- **Tus amigos** usan la dirección del panel.
+For people to join from outside your network you need a free ngrok account: the app takes you to the page, you paste the authtoken, and that is it. Ngrok asks for card verification to enable TCP tunnels on the free plan — that is their anti-abuse requirement, and it does not charge you.
 
-## Preguntas frecuentes
+Once the server is up:
+- **You**, on this same PC, connect to `localhost`.
+- **Your friends** use the address shown in the panel.
 
-**¿Mi PC hace de servidor, o lo hace ngrok?**
-Tu PC. Ngrok solo hace de puente para que el tráfico entre desde internet. Si apagas el PC, el servidor se cae.
+## FAQ
 
-**¿La dirección cambia?**
-Sí, en el plan gratuito de ngrok cambia cada vez que se reinicia el túnel.
+**Is my PC the server, or is ngrok?**
+Your PC. Ngrok is only a bridge that lets traffic in from the internet. Turn the PC off and the server goes down.
 
-**¿Puedo usar mi mundo actual?**
-Sí. Exporta la carpeta `world` a un `.zip` e impórtalo desde la pestaña Mundo.
+**Does the address change?**
+Yes. On ngrok's free plan it changes every time the tunnel restarts.
 
-**¿Por qué no arranca con ciertos mods?**
-Los mods solo de cliente (Sodium, Iris, minimapas) no funcionan en un servidor dedicado y algunos impiden el arranque. El buscador los marca como «Solo cliente»; desactívalos desde la pestaña Mods.
+**Can I use my existing world?**
+Yes. Export your `world` folder as a `.zip` and import it from the World tab.
 
-**¿Cuánta RAM le pongo?**
-Con 40 mods, entre 6 y 8 GB va sobrado. Deja siempre 2 GB libres para Windows.
+**Why won't it start with certain mods?**
+Client-only mods (Sodium, Iris, minimaps) do not work on a dedicated server and some of them stop it booting. The browser marks these as "Client only", and the side filter hides them by default; disable any you already installed from the Mods tab.
 
-**¿Necesito Java?**
-No. Si falta, MineHost instala la versión correcta en `%USERPROFILE%\.minehost\java`.
+**How much RAM should I give it?**
+With around 40 mods, 6–8 GB is plenty. Always leave 2 GB for Windows.
 
-## Requisitos
+**Do I need Java?**
+No. If it is missing, MineHost installs the right version under `%USERPROFILE%\.minehost\java`.
 
-- Windows 10 o superior (64 bits)
-- 4 GB de RAM libres como mínimo, 8 GB recomendado con mods
-- Conexión a internet para la instalación inicial
+## Requirements
 
-## Desarrollo
+- Windows 10 or later (64-bit)
+- 4 GB of free RAM minimum, 8 GB recommended with mods
+- An internet connection for the initial install
+
+## Development
 
 ```bash
-git clone https://github.com/<usuario>/MineHost.git
+git clone https://github.com/<user>/MineHost.git
 cd MineHost
 npm install
-npm start        # modo desarrollo
-npm run dist     # genera el instalador en release/
+npm start        # development mode
+npm run dist     # builds the installer into release/
 ```
 
-### Estructura
+### Layout
 
 ```
 src/
-  main/                  proceso principal
-    main.js                ventana y canales IPC
-    platforms.js           las seis plataformas y sus APIs
-    installer.js           descarga de Java y del servidor
-    serverManager.js       ciclo de vida, consola, RAM/CPU, flags de Aikar
-    ngrokManager.js        túnel y authtoken
-    playerManager.js       ops, whitelist y baneos
-    backupManager.js       copias con volcado seguro y rotación
-    worldManager.js        mundos: importar, exportar, reiniciar dimensiones
-    modrinth.js            búsqueda e instalación con dependencias
-    scheduler.js           reinicios y copias programadas
-    catalog.js             propiedades y gamerules en español
-    settings.js            configuración persistente
-    preload.js             puente aislado con la interfaz
-  renderer/              interfaz, sin frameworks
-    tokens.css             sistema de diseño
-    styles.css             componentes
-    app.js                 lógica, asistente y tutorial
+  main/                      main process
+    main.js                    entry point: managers, window, IPC
+    context.js                 shared state and the operations on it
+    window.js                  the application window
+    ipc/                       one module per channel group
+      index.js                   loads them all
+      server.js, worlds.js, mods.js, players.js, …
+    server/                    pieces of the server lifecycle
+      logPatterns.js             turning console output into facts
+      jvmFlags.js                Aikar's G1GC tuning
+      statsMonitor.js            RAM and CPU sampling
+    serverManager.js           process lifecycle and console
+    platforms.js               the six platforms and their APIs
+    installer.js               Java and server downloads
+    ngrokManager.js            tunnel and authtoken
+    playerManager.js           ops, whitelist and bans
+    backupManager.js           safe-flush backups with rotation
+    worldManager.js            worlds: import, export, reset dimensions
+    modrinth.js                search and install with dependencies
+    scheduler.js               scheduled restarts and backups
+    catalog.js                 properties and game rules, as i18n keys
+    settings.js                persisted configuration
+    preload.js                 the isolated bridge to the interface
+  renderer/                  interface, no frameworks
+    app.js                     entry point and first load
+    icons.svg                  the icon sprite
+    core/                      dom.js, i18n.js
+    ui/                        feedback.js, navigation.js
+    features/                  one module per screen
+    onboarding/                wizard.js, tour.js
+    styles/                    base/, components/, features/
+  i18n/                      seven language files
 assets/
-  fonts/                 Inter y JetBrains Mono (SIL OFL)
-  make-icon.js           genera el icono sin dependencias
+  fonts/                     Inter and JetBrains Mono (SIL OFL)
+  make-icon.js               builds the icon with no dependencies
 ```
 
-### Notas de diseño
+### Design notes
 
-La profundidad se construye con una escalera de superficies y filetes de 1 px; no hay una sola sombra. El verde queda reservado para el estado del servidor, así que el botón primario es claro sobre oscuro. Los números usan cifras tabulares para que no bailen al actualizarse, y todo respeta `prefers-reduced-motion`.
+Depth is built from a ladder of surfaces and 1px rules; there is not a single shadow anywhere. Green is reserved for server state, so the primary button is light-on-dark instead. Numbers use tabular figures so they do not jitter as they update, and everything honours `prefers-reduced-motion`.
 
-## Licencia
+Text the user can read never lives in the code. The backend returns error codes and i18n keys, and they are resolved against the active language on the way out — which is why the settings catalogue reads naturally in all seven languages rather than only the one it was written in.
 
-MIT, en [LICENSE](LICENSE). Las tipografías incluidas se distribuyen bajo SIL Open Font License.
+## Licence
 
-MineHost no está afiliado a Mojang, Microsoft, NeoForged, PaperMC, Modrinth ni ngrok. Minecraft es una marca registrada de Mojang AB.
+MIT, in [LICENSE](LICENSE). The bundled typefaces are distributed under the SIL Open Font License.
+
+MineHost is not affiliated with Mojang, Microsoft, NeoForged, PaperMC, Modrinth or ngrok. Minecraft is a trademark of Mojang AB.

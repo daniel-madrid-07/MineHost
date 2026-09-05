@@ -1,0 +1,56 @@
+/* Activity feed */
+
+.feed {
+  height: calc(100vh - 250px);
+  min-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+}
+
+.ev {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--r-row);
+  font-size: 12.5px;
+  animation: evIn var(--dur-base) var(--ease-out);
+}
+.ev:hover { background: var(--surface-2); }
+@keyframes evIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+.ev-time {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-disabled);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A coloured rule carries the category without shouting. */
+.ev-mark {
+  flex-shrink: 0;
+  width: 2px; align-self: stretch;
+  border-radius: var(--r-pill);
+  background: var(--hairline-strong);
+}
+.ev.join .ev-mark        { background: var(--running); }
+.ev.leave .ev-mark       { background: var(--ink-disabled); }
+.ev.death .ev-mark       { background: var(--danger); }
+.ev.advancement .ev-mark,
+.ev.challenge .ev-mark,
+.ev.goal .ev-mark        { background: #C9A227; }
+.ev.sleep .ev-mark       { background: #6E9FD8; }
+.ev.chat .ev-mark        { background: var(--hairline-strong); }
+.ev.error .ev-mark,
+.ev.overloaded .ev-mark  { background: var(--warn); }
+
+.ev-body { flex: 1; min-width: 0; }
+.ev-body b { font-weight: 550; }
+.ev.chat .ev-body { color: var(--ink-muted); }
+.ev.death .ev-body { color: #E9A7A3; }
+.ev.advancement .ev-body b,
+.ev.challenge .ev-body b,
+.ev.goal .ev-body b { color: #E0C25C; }
+.ev-detail { color: var(--ink-subtle); }

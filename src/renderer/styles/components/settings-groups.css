@@ -1,0 +1,25 @@
+/* Settings groups */
+
+.settings-groups { display: flex; flex-direction: column; gap: var(--s-4); }
+
+.group-title {
+  display: flex; align-items: baseline; gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+.group-title h3 { font-size: 13px; font-weight: 550; letter-spacing: -0.1px; }
+
+.opt-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-5);
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.opt-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.opt-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.opt-label b { font-size: 12.5px; font-weight: 450; }
+.opt-label span { font-size: 11.5px; color: var(--ink-subtle); }
+.opt-control { flex-shrink: 0; display: flex; align-items: center; gap: 7px; }
+.opt-control select { width: 168px; }
+.opt-control input[type="text"] { width: 230px; }
+.opt-control input[type="number"] { width: 88px; text-align: right; }
+.opt-unit { font-size: 11.5px; color: var(--ink-subtle); }

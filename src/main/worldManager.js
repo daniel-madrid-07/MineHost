@@ -51,7 +51,7 @@ function validName(name) {
 }
 
 function rename(serverPath, from, to) {
-  if (!validName(to)) return { ok: false, error: 'Nombre no válido para un mundo.' };
+  if (!validName(to)) return { ok: false, error: 'WORLD_NAME_INVALID' };
   if (fs.existsSync(path.join(serverPath, to))) {
     return { ok: false, error: `Ya existe un mundo llamado "${to}".` };
   }
@@ -65,7 +65,7 @@ function rename(serverPath, from, to) {
 /** Moves a world aside rather than deleting it outright. */
 function remove(serverPath, name, activeName) {
   if (name === activeName) {
-    return { ok: false, error: 'No puedes borrar el mundo activo. Cambia a otro primero.' };
+    return { ok: false, error: 'WORLD_IS_ACTIVE' };
   }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const moved = [];
@@ -92,14 +92,14 @@ function resetDimension(serverPath, worldName, dimension) {
     moved.push(path.basename(to));
   }
   if (!moved.length) {
-    return { ok: false, error: 'Esa dimensión aún no se ha generado, no hay nada que reiniciar.' };
+    return { ok: false, error: 'DIMENSION_NOT_GENERATED' };
   }
   return { ok: true, moved };
 }
 
 async function exportWorld({ serverPath, name, dest, onProgress }) {
   const dirs = related(serverPath, name);
-  if (!dirs.length) return { ok: false, error: 'Ese mundo ya no existe.' };
+  if (!dirs.length) return { ok: false, error: 'WORLD_GONE' };
 
   const zip = new AdmZip();
   let done = 0;
@@ -123,7 +123,7 @@ async function exportWorld({ serverPath, name, dest, onProgress }) {
  * and one that wraps it in a folder.
  */
 function importWorld({ serverPath, zipPath, name }) {
-  if (!validName(name)) return { ok: false, error: 'Nombre no válido para un mundo.' };
+  if (!validName(name)) return { ok: false, error: 'WORLD_NAME_INVALID' };
   if (fs.existsSync(path.join(serverPath, name))) {
     return { ok: false, error: `Ya existe un mundo llamado "${name}".` };
   }
@@ -133,7 +133,7 @@ function importWorld({ serverPath, zipPath, name }) {
 
   const levelEntry = entries.find((e) => e.entryName.replace(/\\/g, '/').endsWith('level.dat'));
   if (!levelEntry) {
-    return { ok: false, error: 'Ese .zip no contiene un mundo (no se encuentra level.dat).' };
+    return { ok: false, error: 'ZIP_NOT_A_WORLD' };
   }
 
   const prefix = levelEntry.entryName.replace(/\\/g, '/').replace(/level\.dat$/, '');

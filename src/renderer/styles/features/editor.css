@@ -1,0 +1,27 @@
+/* Editor */
+
+.editor-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-4); margin-bottom: var(--s-3);
+}
+.editor-title { display: flex; align-items: center; gap: var(--s-3); min-width: 0; }
+.editor-title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.editor {
+  width: 100%;
+  height: calc(100vh - 250px);
+  min-height: 280px;
+  padding: 14px 16px;
+  background: #0A0908;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  resize: none;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  user-select: text;
+}
+.editor:focus { border-color: var(--accent-border); outline: none; }

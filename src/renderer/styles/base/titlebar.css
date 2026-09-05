@@ -1,0 +1,46 @@
+/* Titlebar */
+
+.titlebar {
+  height: var(--titlebar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: 0 var(--s-4);
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline);
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 3;
+}
+
+.titlebar-brand { display: flex; align-items: center; gap: var(--s-3); }
+
+.logo {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  /* The art is already cropped to the block on the app's own canvas, so it
+     needs no repositioning: it sits flush against the titlebar. */
+  background: url('../../assets/MineHost_logo.png') no-repeat center / cover;
+  border-radius: 3px;
+}
+
+.titlebar-name { font-size: 12.5px; font-weight: 550; letter-spacing: -0.1px; }
+
+.titlebar-status {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11.5px; color: var(--ink-muted);
+  padding: 3px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+}
+
+.pip {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--stopped); flex-shrink: 0;
+}
+.pip.running  { background: var(--running); box-shadow: 0 0 0 3px var(--accent-soft); }
+.pip.starting { background: var(--starting); animation: pulse 1.4s var(--ease-io) infinite; }
+.pip.crashed  { background: var(--crashed); }
+
+@keyframes pulse { 50% { opacity: 0.35; } }

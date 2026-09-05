@@ -1,0 +1,12 @@
+/* Notice */
+
+.notice {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: 10px 13px;
+  background: var(--warn-soft);
+  border: 1px solid rgba(224, 168, 46, 0.28);
+  border-radius: var(--r-btn);
+  color: var(--warn);
+  font-size: 12.5px;
+  margin-bottom: var(--s-4);
+}

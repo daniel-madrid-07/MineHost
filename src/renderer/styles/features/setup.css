@@ -1,0 +1,11 @@
+/* Setup */
+
+.setup {
+  display: grid; place-items: center;
+  min-height: 340px;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--r-card);
+  padding: var(--s-7);
+}
+.setup-inner { text-align: center; max-width: 400px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.setup-inner .btn { margin-top: var(--s-3); }

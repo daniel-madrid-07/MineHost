@@ -159,7 +159,9 @@ contextBridge.exposeInMainWorld('mh', {
   },
 
   modrinth: {
-    search: (query, offset) => ipcRenderer.invoke('modrinth:search', { query, offset }),
+    search: (query, offset, filters) =>
+      ipcRenderer.invoke('modrinth:search', { query, offset, filters }),
+    facets: invoke('modrinth:facets'),
     install: invoke('modrinth:install'),
   },
 

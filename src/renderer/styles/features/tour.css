@@ -1,0 +1,31 @@
+/* Tour */
+
+.tour { position: fixed; inset: 0; z-index: 60; }
+.tour[hidden] { display: none; }
+
+.tour-mask { position: absolute; inset: 0; width: 100%; height: 100%; }
+#tourHole, #tourRing { transition: x var(--dur-slow) var(--ease-out), y var(--dur-slow) var(--ease-out),
+                                   width var(--dur-slow) var(--ease-out), height var(--dur-slow) var(--ease-out); }
+
+.tour-pop {
+  position: absolute;
+  width: 312px;
+  padding: 16px;
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 12px;
+  display: flex; flex-direction: column; gap: 7px;
+  transition: transform var(--dur-slow) var(--ease-out), opacity var(--dur-base) var(--ease-out);
+}
+.tour-pop-head { display: flex; align-items: center; justify-content: space-between; }
+.tour-skip {
+  background: none; border: 0; padding: 0;
+  color: var(--ink-subtle); font: inherit; font-size: 11.5px;
+  cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tour-skip:hover { color: var(--ink-muted); }
+.tour-pop-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
+.tour-dots { display: flex; gap: 5px; }
+.tour-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--hairline-strong); transition: background var(--dur-base) var(--ease-out); }
+.tour-dots i.on { background: var(--accent); }

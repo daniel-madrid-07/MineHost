@@ -1,6 +1,6 @@
 const https = require('https');
 
-const REPO = process.env.MINEHOST_REPO || 'DanielMadrid/MineHost';
+const REPO = process.env.MINEHOST_REPO || 'daniel-madrid-07/MineHost';
 const UA = 'MineHost-Updater';
 
 function getJson(url) {

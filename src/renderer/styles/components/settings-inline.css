@@ -1,0 +1,8 @@
+/* Inline settings */
+
+.card-inline { padding: 12px 16px; }
+.inline-grid { display: flex; gap: var(--s-7); flex-wrap: wrap; align-items: flex-start; }
+.inline-grid .field { margin-bottom: 0; }
+.addrow { display: flex; gap: var(--s-2); max-width: 460px; }
+.addrow input { flex: 1; }
+.addrow-hint { margin: 6px 0 var(--s-4); }

@@ -1,0 +1,72 @@
+/* Cards */
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 14px 16px;
+  margin-bottom: var(--s-4);
+}
+
+.chead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-3); margin-bottom: var(--s-4);
+}
+.chead-title { font-size: 12px; font-weight: 600; color: var(--ink-muted); letter-spacing: 0; }
+
+.card-intro { margin-bottom: var(--s-5); max-width: 62ch; }
+
+.grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: var(--s-4); }
+@media (max-width: 1080px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.tag {
+  font-size: 11px; font-weight: 450;
+  padding: 2px 8px; border-radius: var(--r-pill);
+  background: var(--surface-2); border: 1px solid var(--hairline);
+  color: var(--ink-subtle);
+}
+.tag.live {
+  background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent);
+}
+
+/* Address */
+
+.addr-row { display: flex; align-items: center; gap: var(--s-2); }
+.addr-row + .addr-row { margin-top: var(--s-3); }
+
+.addr {
+  flex: 1; min-width: 0;
+  padding: 10px 12px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-btn);
+  color: var(--accent);
+  font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  user-select: text;
+}
+.addr-sm { padding: 7px 10px; font-size: 12px; color: var(--ink-muted); }
+.addr-local { padding-top: var(--s-1); }
+.addr-label { flex-shrink: 0; }
+#addrHint { margin-top: 10px; }
+
+/* Stats */
+
+.stats { display: flex; flex-direction: column; gap: 9px; }
+.stats > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-4); }
+.stats dt { font-size: 12.5px; color: var(--ink-subtle); }
+.stats dd { font-size: 13px; font-weight: 500; text-align: right; }
+
+/* Online players */
+
+.online-list { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+.player-tag {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 10px 5px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-row);
+  font-size: 12.5px;
+}
+.player-tag .pip { background: var(--running); }

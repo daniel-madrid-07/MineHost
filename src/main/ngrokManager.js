@@ -227,7 +227,7 @@ class NgrokManager {
       }
     }
 
-    const error = this.lastError || 'No se pudo abrir el túnel. Revisa tu authtoken.';
+    const error = this.lastError || 'TUNNEL_FAILED';
     await this.stop();
     return { ok: false, error };
   }

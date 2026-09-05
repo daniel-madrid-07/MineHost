@@ -1,0 +1,19 @@
+/* Steps */
+
+.steps { list-style: none; display: flex; flex-direction: column; gap: var(--s-5); }
+.steps li { display: flex; gap: var(--s-4); }
+.steps li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+
+.step-n {
+  width: 22px; height: 22px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  font-size: 11px; font-weight: 550;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.token-row { width: 100%; margin-top: 2px; }
+.token-row input { max-width: 300px; }

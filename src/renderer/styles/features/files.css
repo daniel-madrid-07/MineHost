@@ -1,0 +1,25 @@
+/* File browser */
+
+.crumbs {
+  display: flex; align-items: center; gap: 3px;
+  margin-bottom: var(--s-4);
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+.crumb {
+  padding: 3px 8px;
+  background: none; border: 0; border-radius: var(--r-chip);
+  color: var(--ink-muted); font: inherit; font-size: 12.5px;
+  cursor: pointer;
+}
+.crumb:hover { background: var(--surface-2); color: var(--ink); }
+.crumb.current { color: var(--ink); font-weight: 500; cursor: default; }
+.crumb.current:hover { background: none; }
+.crumb-sep { color: var(--ink-disabled); }
+
+.dropzone-sm { padding: 12px; margin-bottom: var(--s-3); }
+
+.row-file { cursor: default; }
+.row-file.is-folder { cursor: pointer; }
+.row-file .ic { color: var(--ink-subtle); }
+.row-file.is-folder .ic { color: var(--accent); }

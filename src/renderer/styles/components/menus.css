@@ -1,0 +1,96 @@
+/* Command shortcuts */
+
+.shortcuts {
+  display: flex; flex-wrap: wrap; gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+
+.menu { position: relative; }
+
+.menu-trigger {
+  display: flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 10px 0 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-btn);
+  color: var(--ink-muted);
+  font: inherit; font-size: 12.5px;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.menu-trigger:hover { background: var(--surface-2); color: var(--ink); border-color: var(--hairline-strong); }
+.menu.open .menu-trigger { background: var(--surface-2); color: var(--ink); border-color: var(--hairline-strong); }
+
+.menu-trigger .chev {
+  width: 13px; height: 13px;
+  color: var(--ink-subtle);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.menu.open .menu-trigger .chev { transform: rotate(180deg); }
+
+/* The list sits above the console, so it needs its own surface step. */
+.menu-list {
+  position: absolute;
+  top: calc(100% + 4px); left: 0;
+  z-index: 20;
+  min-width: 160px;
+  padding: 4px;
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-btn);
+}
+.menu.open .menu-list {
+  display: flex;
+  animation: menuIn var(--dur-fast) var(--ease-out);
+}
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.menu-list button {
+  text-align: left;
+  height: 30px; padding: 0 10px;
+  background: none; border: 0; border-radius: var(--r-row);
+  color: var(--ink-muted);
+  font: inherit; font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.menu-list button:hover { background: var(--surface-2); color: var(--ink); }
+
+/* A selected entry in a filter menu keeps a tick-like weight without an icon. */
+.menu-list button.is-on { background: var(--surface-2); color: var(--ink); font-weight: 500; }
+.menu-list-tall { max-height: 280px; overflow-y: auto; }
+
+/* The label stays quiet; the chosen value is the part being read. */
+.menu-label { color: var(--ink-subtle); }
+.menu-value { color: var(--ink); }
+
+.filterbar {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.filterbar .check { margin-left: 2px; }
+
+/* "Load more" is a way out of the list, not part of it, so it stands apart. */
+#mrMore { display: block; margin: 12px auto 4px; }
+
+/* Downloads and tags, sitting under the description at a lower rank. */
+.row-meta {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--ink-subtle);
+  font-size: 11.5px;
+}
+.row-meta .num { font-variant-numeric: tabular-nums; }
+
+.choice-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }

@@ -1,0 +1,32 @@
+/* Buttons */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; padding: 0 13px;
+  font: inherit; font-size: 12.5px; font-weight: 500;
+  border: 1px solid transparent; border-radius: var(--r-btn);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform var(--dur-instant) var(--ease-out);
+}
+.btn:active:not(:disabled) { transform: scale(0.985); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Primary reads as light-on-dark; the green stays reserved for status. */
+.btn-primary { background: var(--ink); color: #14120F; }
+.btn-primary:hover:not(:disabled) { background: #FFFFFF; }
+
+.btn-quiet { background: var(--surface-2); color: var(--ink-muted); border-color: var(--hairline); }
+.btn-quiet:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); border-color: var(--hairline-strong); }
+
+.btn-danger { background: var(--danger-soft); color: #F08A83; border-color: rgba(229, 72, 77, 0.32); }
+.btn-danger:hover:not(:disabled) { background: rgba(229, 72, 77, 0.2); color: #FF9B94; }
+
+.btn-sm { height: 27px; padding: 0 10px; font-size: 12px; }
+.btn-lg { height: 38px; padding: 0 20px; font-size: 13.5px; }
+.btn-icon { width: 32px; padding: 0; }
+
+.btn.is-on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }

@@ -1,0 +1,29 @@
+/* Searchbar */
+
+.searchbar {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: 0 12px;
+  height: 34px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-btn);
+  margin-bottom: var(--s-4);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.searchbar:focus-within { border-color: var(--accent-border); }
+
+/* The wrapper owns the border; the input must never draw its own, including
+   the accent one the global input:focus rule would otherwise apply. */
+.searchbar input,
+.searchbar input:focus,
+.searchbar input:hover {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+}
+.searchbar .ic { flex-shrink: 0; }
+.searchbar-sm { width: 190px; height: 32px; margin: 0; }

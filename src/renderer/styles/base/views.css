@@ -1,0 +1,14 @@
+/* Views */
+
+.main { flex: 1; overflow-y: auto; padding: var(--s-6) var(--s-7) var(--s-8); position: relative; z-index: 2; }
+
+.view { display: none; }
+.view.active { display: block; animation: viewIn var(--dur-base) var(--ease-out); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.vhead {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--s-5); margin-bottom: var(--s-6);
+}
+.vhead h1 { margin-bottom: 3px; }
+.vhead-actions { display: flex; gap: var(--s-3); flex-shrink: 0; align-items: center; }

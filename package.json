@@ -1,10 +1,15 @@
 {
   "name": "minehost",
-  "version": "1.5.1",
-  "description": "Crea y gestiona servidores de Minecraft en tu propio PC, sin tocar el router.",
-  "main": "src/main/main.js",
-  "author": "Daniel",
+  "version": "1.5.2",
+  "description": "Create and manage Minecraft servers on your own PC, without touching the router.",
+  "author": "daniel-madrid-07",
   "license": "MIT",
+  "homepage": "https://github.com/daniel-madrid-07/MineHost",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daniel-madrid-07/MineHost.git"
+  },
+  "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win --dir && node scripts/stamp-icon.js && node scripts/trim-build.js && electron-builder --win --prepackaged release/win-unpacked"

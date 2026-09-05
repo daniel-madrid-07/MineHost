@@ -1,0 +1,37 @@
+/* Console */
+
+.console {
+  height: calc(100vh - 260px);
+  min-height: 260px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  background: #0A0908;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  user-select: text;
+}
+.console .ln { white-space: pre-wrap; word-break: break-word; padding: 1px 0; }
+.console .ln.info    { color: #B9B2AA; }
+.console .ln.system  { color: var(--warn); }
+.console .ln.success { color: var(--accent); }
+.console .ln.error   { color: #F08A83; }
+.console .ln.command { color: #86B4E8; }
+.console .ln.hidden-row { display: none; }
+
+.cmdbar {
+  display: flex; align-items: center; gap: var(--s-2);
+  margin-top: var(--s-3);
+  padding-left: 12px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-btn);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.cmdbar:focus-within { border-color: var(--accent-border); }
+.cmd-prompt { color: var(--ink-subtle); flex-shrink: 0; }
+.cmdbar input { border: 0; background: none; height: 34px; }
+.cmdbar input:focus { border: 0; }
+.cmdbar .btn { margin: 3px; }

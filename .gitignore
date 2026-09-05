@@ -11,3 +11,7 @@ err.txt
 Thumbs.db
 .vscode/
 .idea/
+
+# Build artefacts and local scratch
+*.bak
+.logo-preview/

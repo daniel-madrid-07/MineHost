@@ -74,10 +74,10 @@ async function create({
   serverPath, levelName = 'world', label = '', keep = 10,
   isRunning, sendCommand, waitForSave, onProgress,
 }) {
-  if (!fs.existsSync(serverPath)) return { ok: false, error: 'La carpeta del servidor no existe.' };
+  if (!fs.existsSync(serverPath)) return { ok: false, error: 'SERVER_FOLDER_MISSING' };
 
   const worlds = worldFolders(serverPath, levelName);
-  if (!worlds.length) return { ok: false, error: 'No hay ningún mundo que copiar todavía.' };
+  if (!worlds.length) return { ok: false, error: 'NO_WORLD_YET' };
 
   let resumed = false;
   if (isRunning) {
@@ -141,10 +141,10 @@ async function create({
 /** Restores a backup. The current world is moved aside, never deleted. */
 async function restore({ serverPath, file, levelName = 'world', isRunning }) {
   if (isRunning) {
-    return { ok: false, error: 'Apaga el servidor antes de restaurar una copia.' };
+    return { ok: false, error: 'STOP_BEFORE_RESTORE' };
   }
   const src = path.join(backupsDir(serverPath), file);
-  if (!fs.existsSync(src)) return { ok: false, error: 'Esa copia ya no existe.' };
+  if (!fs.existsSync(src)) return { ok: false, error: 'BACKUP_GONE' };
 
   const stampSuffix = timestamp();
   const movedAside = [];

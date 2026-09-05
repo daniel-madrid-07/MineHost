@@ -126,7 +126,7 @@ async function installJava(major, onProgress) {
       if (info?.major >= major) return exe;
     }
   }
-  throw new Error('No se encontró java.exe después de instalarlo.');
+  throw new Error('JAVA_NOT_FOUND_AFTER_INSTALL');
 }
 
 /** Reports what is already installed in a folder, if anything. */

@@ -5,52 +5,9 @@ const { spawn, execFile } = require('child_process');
 
 const events = require('./events');
 const detectRunning = require('./detectRunning');
-
-const READY_RE   = /Done \(([\d.]+)s\)!/i;
-const JOIN_RE    = /:\s*([A-Za-z0-9_]{1,16}) joined the game/i;
-const LEAVE_RE   = /:\s*([A-Za-z0-9_]{1,16}) left the game/i;
-const CHAT_RE    = /:\s*<([A-Za-z0-9_]{1,16})>\s*(.+)$/;
-const SAVED_RE   = /Saved the game|ThreadedAnvilChunkStorage.*complete|Saving.*chunks/i;
-const EULA_RE    = /You need to agree to the EULA/i;
-const PORT_RE    = /Perhaps a server is already running|address already in use|FAILED TO BIND/i;
-/* A missing or mismatched mod dependency never fixes itself on a retry. */
-const MODS_RE    = /Missing or unsupported mandatory dependencies|requires .* or above|ModLoadingException/i;
-
-/* Forge-likes answer /forge tps; Paper-likes answer /tps. */
-const TPS_FORGE_RE = /Overall\s*:?\s*Mean tick time:\s*([\d.]+)\s*ms\.?\s*Mean TPS:\s*([\d.]+)/i;
-const TPS_DIM_RE   = /Mean tick time:\s*([\d.]+)\s*ms\.?\s*Mean TPS:\s*([\d.]+)/i;
-const TPS_PAPER_RE = /TPS from last 1m, 5m, 15m:\s*\*?([\d.]+)/i;
-
-/**
- * Aikar's flags: proven G1GC tuning for Minecraft servers. Applied above 4 GB,
- * where the collector actually has room to benefit.
- */
-function jvmFlags(ramGb) {
-  const base = [`-Xms${Math.max(1, Math.floor(ramGb / 2))}G`, `-Xmx${ramGb}G`];
-  if (ramGb < 4) return base;
-  return base.concat([
-    '-XX:+UseG1GC',
-    '-XX:+ParallelRefProcEnabled',
-    '-XX:MaxGCPauseMillis=200',
-    '-XX:+UnlockExperimentalVMOptions',
-    '-XX:+DisableExplicitGC',
-    '-XX:+AlwaysPreTouch',
-    `-XX:G1NewSizePercent=${ramGb >= 12 ? 40 : 30}`,
-    `-XX:G1MaxNewSizePercent=${ramGb >= 12 ? 50 : 40}`,
-    `-XX:G1HeapRegionSize=${ramGb >= 12 ? 16 : 8}M`,
-    '-XX:G1ReservePercent=15',
-    '-XX:G1HeapWastePercent=5',
-    '-XX:G1MixedGCCountTarget=4',
-    '-XX:InitiatingHeapOccupancyPercent=20',
-    '-XX:G1MixedGCLiveThresholdPercent=90',
-    '-XX:G1RSetUpdatingPauseTimePercent=5',
-    '-XX:SurvivorRatio=32',
-    '-XX:+PerfDisableSharedMem',
-    '-XX:MaxTenuringThreshold=1',
-    '-Dusing.aikars.flags=https://mcflags.emc.gs',
-    '-Daikars.new.flags=true',
-  ]);
-}
+const patterns = require('./server/logPatterns');
+const { jvmFlags } = require('./server/jvmFlags');
+const { StatsMonitor } = require('./server/statsMonitor');
 
 class ServerManager {
   constructor({ onLog, onState, onStats, onCrash, onEvent }) {
@@ -73,7 +30,14 @@ class ServerManager {
     this.eventBuffer = [];
     this.tps = null;
     this.mspt = null;
-    this.history = [];
+    this.stats = new StatsMonitor({
+      onSample: (sample) => this.onStats?.(sample),
+      getContext: () => ({
+        players: this.players.length,
+        tps: this.tps,
+        mspt: this.mspt,
+      }),
+    });
     this.tpsTimer = null;
     this.tpsProbe = null;
     this.external = null;
@@ -251,17 +215,17 @@ class ServerManager {
     const { serverPath, javaPath, ramGb } = opts;
 
     if (!fs.existsSync(serverPath)) {
-      return { ok: false, error: 'La carpeta del servidor ya no existe.' };
+      return { ok: false, error: 'SERVER_FOLDER_GONE' };
     }
 
     const eula = path.join(serverPath, 'eula.txt');
     if (!fs.existsSync(eula) || !/eula\s*=\s*true/i.test(fs.readFileSync(eula, 'utf8'))) {
-      return { ok: false, error: 'Falta aceptar el EULA de Minecraft.' };
+      return { ok: false, error: 'EULA_NOT_ACCEPTED' };
     }
 
     const args = this._launchArgs(opts);
     if (!args) {
-      return { ok: false, error: 'No se encuentra el servidor instalado en esa carpeta. Instálalo de nuevo.' };
+      return { ok: false, error: 'SERVER_NOT_INSTALLED' };
     }
 
     this.opts = opts;
@@ -285,14 +249,14 @@ class ServerManager {
         if (!line) continue;
         this._emit(line, level);
 
-        if (this.status === 'starting' && READY_RE.test(line)) {
+        if (this.status === 'starting' && patterns.READY.test(line)) {
           this.startedAt = Date.now();
           this._setState('running');
           this._emit('Listo. Ya se puede entrar al servidor.', 'success');
           this._startStats();
         }
 
-        if (SAVED_RE.test(line) && this.saveWaiters.length) {
+        if (patterns.SAVED.test(line) && this.saveWaiters.length) {
           const waiters = this.saveWaiters;
           this.saveWaiters = [];
           waiters.forEach((w) => w());
@@ -300,16 +264,16 @@ class ServerManager {
 
         this._readTps(line);
 
-        if (EULA_RE.test(line)) this.lastError = 'eula';
-        if (PORT_RE.test(line)) this.lastError = 'port';
-        if (MODS_RE.test(line) && !this.lastError) this.lastError = 'mods';
+        if (patterns.EULA.test(line)) this.lastError = 'eula';
+        if (patterns.PORT.test(line)) this.lastError = 'port';
+        if (patterns.MODS.test(line) && !this.lastError) this.lastError = 'mods';
 
-        const j = JOIN_RE.exec(line);
+        const j = patterns.JOIN.exec(line);
         if (j && !this.players.includes(j[1])) {
           this.players.push(j[1]);
           this.onState?.(this.getState());
         }
-        const l = LEAVE_RE.exec(line);
+        const l = patterns.LEAVE.exec(line);
         if (l) {
           this.players = this.players.filter((p) => p !== l[1]);
           this.onState?.(this.getState());
@@ -354,7 +318,6 @@ class ServerManager {
     this.tpsTimer = null;
     this.tps = null;
     this.mspt = null;
-    this.history = [];
     this.proc = null;
     this.players = [];
     this.startedAt = null;
@@ -375,86 +338,10 @@ class ServerManager {
    */
   _startStats() {
     this._stopStats();
-
     const pid = this.proc?.pid;
     if (!pid) return;
 
-    const totalRamMb = os.totalmem() / 1048576;
-    let lastCpu = null;
-    let idleSince = null;
-
-    // Loops inside PowerShell and writes one line per reading. Invariant
-    // formatting keeps the decimal separator predictable on any locale.
-    const script = `
-      $i = [System.Globalization.CultureInfo]::InvariantCulture
-      while ($true) {
-        $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
-        if (-not $p) { break }
-        "{0};{1}" -f $p.WorkingSet64.ToString($i), $p.TotalProcessorTime.TotalMilliseconds.ToString($i)
-        Start-Sleep -Milliseconds $env:MH_SAMPLE_MS
-      }
-    `;
-
-    let monitor;
-    try {
-      monitor = spawn('powershell', ['-NoProfile', '-Command', script], {
-        windowsHide: true,
-        env: { ...process.env, MH_SAMPLE_MS: '3000' },
-      });
-    } catch (_) {
-      return;
-    }
-    this.statsProc = monitor;
-
-    let buffer = '';
-    monitor.stdout.on('data', (chunk) => {
-      buffer += chunk.toString();
-      const lines = buffer.split(/\r?\n/);
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        const [ws, cpuMs] = line.trim().split(';')
-          .map((v) => Number(String(v).replace(',', '.')));
-        if (!Number.isFinite(ws) || ws <= 0) continue;
-
-        const now = Date.now();
-        let cpuPercent = null;
-        if (lastCpu && Number.isFinite(cpuMs)) {
-          const deltaCpu = cpuMs - lastCpu.cpuMs;
-          const deltaWall = now - lastCpu.at;
-          if (deltaWall > 0 && deltaCpu >= 0) {
-            const pct = (deltaCpu / (deltaWall * os.cpus().length)) * 100;
-            if (Number.isFinite(pct)) cpuPercent = Math.max(0, Math.min(100, pct));
-          }
-        }
-        if (Number.isFinite(cpuMs)) lastCpu = { cpuMs, at: now };
-
-        const sample = {
-          ts: now,
-          ramMb: Math.round(ws / 1048576),
-          ramPercent: Math.round((ws / 1048576 / totalRamMb) * 100),
-          cpuPercent: cpuPercent === null ? null : Math.round(cpuPercent * 10) / 10,
-          players: this.players.length,
-          tps: this.tps,
-          mspt: this.mspt,
-        };
-
-        // Roughly an hour of history at one sample every three seconds.
-        this.history.push(sample);
-        if (this.history.length > 1200) this.history.shift();
-
-        this.onStats?.(sample);
-
-        // Nobody playing and nothing happening: check back far less often.
-        const quiet = this.players.length === 0 && (cpuPercent === null || cpuPercent < 8);
-        idleSince = quiet ? (idleSince || now) : null;
-      }
-    });
-
-    monitor.on('error', () => { this.statsProc = null; });
-    monitor.on('close', () => { this.statsProc = null; });
+    this.stats.start(pid);
 
     // The tick-rate command is chatty, so ask far less often than we sample.
     this.tpsTimer = setInterval(() => this._pollTps(), 15000);
@@ -462,65 +349,41 @@ class ServerManager {
   }
 
   _stopStats() {
-    clearInterval(this.statsTimer);
     clearInterval(this.tpsTimer);
-    this.statsTimer = null;
     this.tpsTimer = null;
-    if (this.statsProc) {
-      try { this.statsProc.kill(); } catch (_) {}
-      this.statsProc = null;
-    }
+    this.stats.stop();
   }
 
   getHistory() {
-    return [...this.history];
+    return this.stats.getHistory();
   }
 
-  /**
-   * Picks TPS out of a console line. Values are capped at 20, the tick rate
-   * Minecraft targets; servers sometimes report marginally above it.
-   */
+  /** Records a tick rate if this line carries one. */
   _readTps(line) {
-    const forge = TPS_FORGE_RE.exec(line) || (this.tps === null && TPS_DIM_RE.exec(line));
-    if (forge) {
-      this.mspt = parseFloat(forge[1]);
-      this.tps = Math.min(20, parseFloat(forge[2]));
-      return;
-    }
-    const paper = TPS_PAPER_RE.exec(line);
-    if (paper) {
-      this.tps = Math.min(20, parseFloat(paper[1]));
-      if (this.mspt === null) this.mspt = 1000 / Math.max(1, this.tps);
-    }
+    const reading = patterns.readTps(line);
+    if (!reading) return;
+    // Servers sometimes report a hair above 20, the rate Minecraft targets.
+    this.tps = Math.min(20, reading.tps);
+    if (reading.mspt !== null) this.mspt = reading.mspt;
   }
 
-  /**
-   * Asks the server for its tick rate. The command differs by platform, and
-   * silence is fine: vanilla has no such command, so TPS simply stays unknown.
-   */
+  /** Asks the server for its tick rate, in whichever dialect it speaks. */
   _pollTps() {
     if (this.status !== 'running' || !this.proc) return;
-    const platform = this.opts?.platform;
-    const cmd = platform === 'paper' || platform === 'purpur' ? 'tps'
-      : platform === 'neoforge' ? 'neoforge tps'
-      : platform === 'forge' ? 'forge tps'
-      : null;
+    const cmd = patterns.tpsCommand(this.platform);
     if (!cmd) return;
-
-    try {
-      this.proc.stdin.write(`${cmd}\n`);
-    } catch (_) {}
+    try { this.proc.stdin.write(cmd + '\n'); } catch (_) {}
   }
 
   sendCommand(cmd) {
     if (this.external) return { ok: false, error: 'EXTERNAL_NO_CONSOLE' };
     if (!this.proc || this.status === 'stopped') {
-      return { ok: false, error: 'El servidor no está en marcha.' };
+      return { ok: false, error: 'SERVER_NOT_RUNNING' };
     }
     try {
       this.proc.stdin.write(`${cmd}\n`);
     } catch (err) {
-      return { ok: false, error: `No se pudo enviar el comando: ${err.message}` };
+      return { ok: false, error: 'COMMAND_FAILED', detail: err.message };
     }
     this._emit(`> ${cmd}`, 'command');
     return { ok: true };
@@ -602,4 +465,3 @@ class ServerManager {
 }
 
 module.exports = ServerManager;
-module.exports.jvmFlags = jvmFlags;
