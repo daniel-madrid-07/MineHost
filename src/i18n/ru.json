@@ -88,7 +88,7 @@
   "mods.tabSearch": "Поиск в Modrinth",
   "mods.drop": "Перетащи сюда моды",
   "mods.dropPlugins": "Перетащи сюда плагины",
-  "mods.dropHint": "JAR-файлы",
+  "mods.dropHint": "Файлы .jar",
   "mods.enable": "Включить",
   "mods.disable": "Выключить",
   "mods.delete": "Удалить",

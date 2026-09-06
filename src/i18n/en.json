@@ -88,7 +88,7 @@
   "mods.tabSearch": "Search Modrinth",
   "mods.drop": "Drop your mods here",
   "mods.dropPlugins": "Drop your plugins here",
-  "mods.dropHint": "JAR files",
+  "mods.dropHint": ".jar files",
   "mods.enable": "Enable",
   "mods.disable": "Disable",
   "mods.delete": "Delete",

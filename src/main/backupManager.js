@@ -152,7 +152,7 @@ async function restore({ serverPath, file, levelName = 'world', isRunning }) {
   try {
     for (const w of worldFolders(serverPath, levelName)) {
       const from = path.join(serverPath, w);
-      const to = path.join(serverPath, `${w}_anterior_${stampSuffix}`);
+      const to = path.join(serverPath, `${w}_previous_${stampSuffix}`);
       fs.renameSync(from, to);
       movedAside.push({ from, to });
     }

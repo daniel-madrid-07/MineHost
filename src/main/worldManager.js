@@ -20,7 +20,7 @@ function list(serverPath, activeName = 'world') {
     // Nether/End live beside the overworld on Paper-likes; not separate worlds.
     if (/_nether$|_the_end$/.test(entry.name)) continue;
     // Copies we set aside during a restore or delete are not offered as worlds.
-    if (/_anterior_[\d-]+$/.test(entry.name) || entry.name.startsWith('_papelera_')) continue;
+    if (/_previous_[\d-]+$/.test(entry.name) || entry.name.startsWith('_trash_')) continue;
 
     let modified = 0;
     try { modified = fs.statSync(path.join(full, 'level.dat')).mtimeMs; } catch (_) {}
@@ -70,7 +70,7 @@ function remove(serverPath, name, activeName) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const moved = [];
   for (const dir of related(serverPath, name)) {
-    const to = path.join(serverPath, `_papelera_${path.basename(dir)}_${stamp}`);
+    const to = path.join(serverPath, `_trash_${path.basename(dir)}_${stamp}`);
     fs.renameSync(dir, to);
     moved.push(path.basename(to));
   }
@@ -87,7 +87,7 @@ function resetDimension(serverPath, worldName, dimension) {
   const moved = [];
   for (const dir of targets) {
     if (!fs.existsSync(dir)) continue;
-    const to = `${dir}_anterior_${stamp}`;
+    const to = `${dir}_previous_${stamp}`;
     fs.renameSync(dir, to);
     moved.push(path.basename(to));
   }

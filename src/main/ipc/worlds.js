@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const worlds = require('../worldManager');
 const { ctx, send, handle, currentServer } = require('../context');
+const { readProps } = require('./shared');
 
 handle('worlds:list', () => {
   const { settings } = currentServer();

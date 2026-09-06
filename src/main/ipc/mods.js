@@ -7,15 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const platforms = require('../platforms');
 const { handle, currentServer } = require('../context');
-
-function contentDir(settings, info) {
-  const platform = platforms.PLATFORMS[info.platform || settings.platform];
-  const dir = platform?.modsDir;
-  if (!dir) return null;
-  const full = path.join(settings.serverPath, dir);
-  fs.mkdirSync(full, { recursive: true });
-  return full;
-}
+const { contentDir } = require('./shared');
 
 handle('mods:list', () => {
   const { settings, info } = currentServer();

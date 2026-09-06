@@ -4,6 +4,7 @@
 
 const modrinth = require('../modrinth');
 const { send, handle, currentServer } = require('../context');
+const { contentDir } = require('./shared');
 
 handle('modrinth:search', ({ query, offset, filters = {} }) => {
   const { settings, info } = currentServer();

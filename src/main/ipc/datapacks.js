@@ -5,6 +5,7 @@
 const path = require('path');
 const fs = require('fs');
 const { handle, currentServer } = require('../context');
+const { readProps } = require('./shared');
 
 handle('datapacks:list', () => {
   const { settings } = currentServer();

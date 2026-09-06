@@ -7,6 +7,8 @@
 Install, configure and share a Minecraft server without touching the router,
 without a terminal, and without hand-editing config files.
 
+![The MineHost dashboard: server online, tunnel address, live performance and the players currently connected](docs/screenshots/dashboard.png)
+
 </div>
 
 ---
@@ -40,6 +42,72 @@ MineHost fills that gap. Your hardware and your worlds, with the convenience of 
 **Watching.** Live RAM and CPU, automatic restart if the server crashes, and scheduled restarts that warn players in chat first.
 
 **Seven languages.** English, Spanish, Portuguese, French, German, Italian and Russian — including every settings caption.
+
+
+## What it looks like
+
+<table>
+<tr>
+<td width="50%">
+
+**Mods, from Modrinth**
+
+![Searching Modrinth with filters for category, sort order and server compatibility](docs/screenshots/modrinth.png)
+
+Search, filter and install with dependencies resolved for you.
+
+</td>
+<td width="50%">
+
+**Every setting, explained**
+
+![The game options tab, showing server.properties grouped and described in plain language](docs/screenshots/settings.png)
+
+All 43 properties and 28 game rules, in your language.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Live console**
+
+![The console, with dropdown shortcuts for time, weather, difficulty, players and server commands](docs/screenshots/console.png)
+
+Shortcuts for the commands you actually use.
+
+</td>
+<td width="50%">
+
+**Players**
+
+![The players tab, listing operators with their Minecraft faces](docs/screenshots/players.png)
+
+Operators, whitelist and bans, one click each.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Worlds**
+
+![The world tab, listing worlds with their size and the active one marked](docs/screenshots/worlds.png)
+
+Several worlds, imported and exported as .zip files.
+
+</td>
+<td width="50%">
+
+**Backups**
+
+![The backups tab, listing automatic and manual backups with their dates and sizes](docs/screenshots/backups.png)
+
+Automatic, rotated, and flushed safely before copying.
+
+</td>
+</tr>
+</table>
 
 ## Installing
 
@@ -107,6 +175,7 @@ src/
     window.js                  the application window
     ipc/                       one module per channel group
       index.js                   loads them all
+      shared.js                  helpers more than one of them needs
       server.js, worlds.js, mods.js, players.js, …
     server/                    pieces of the server lifecycle
       logPatterns.js             turning console output into facts

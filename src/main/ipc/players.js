@@ -4,6 +4,7 @@
 
 const players = require('../playerManager');
 const { ctx, handle, currentServer } = require('../context');
+const { readProps } = require('./shared');
 
 handle('players:read', (p) => players.readAll(p));
 handle('players:mutate', async ({ list, action, value, opts }) => {

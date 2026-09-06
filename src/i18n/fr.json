@@ -88,7 +88,7 @@
   "mods.tabSearch": "Chercher sur Modrinth",
   "mods.drop": "Déposez vos mods ici",
   "mods.dropPlugins": "Déposez vos plugins ici",
-  "mods.dropHint": "Fichiers JAR",
+  "mods.dropHint": "Fichiers .jar",
   "mods.enable": "Activer",
   "mods.disable": "Désactiver",
   "mods.delete": "Supprimer",

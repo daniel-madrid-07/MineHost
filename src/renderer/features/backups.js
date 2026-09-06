@@ -9,8 +9,7 @@ export async function refreshBackups() {
   const list = await api.backups.list(S.server?.serverPath);
 
   if (!list.length) {
-    emptyState(box, 'backup', t('backups.empty'),
-      'Crea una antes de instalar mods nuevos o de tocar el mundo.',
+    emptyState(box, 'backup', t('backups.empty'), t('backups.emptyHint'),
       { label: t('backups.emptyCta'), onClick: () => $('btnBackupNow').click() });
     return;
   }

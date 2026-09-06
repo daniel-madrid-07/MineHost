@@ -5,20 +5,7 @@
 const path = require('path');
 const fs = require('fs');
 const { ctx, handle } = require('../context');
-
-function readProps(serverPath) {
-  const file = path.join(serverPath, 'server.properties');
-  if (!fs.existsSync(file)) return {};
-  const out = {};
-  for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line || line.startsWith('#')) continue;
-    const i = line.indexOf('=');
-    if (i === -1) continue;
-    out[line.slice(0, i)] = line.slice(i + 1).replace(/\\([:=])/g, '$1');
-  }
-  return out;
-}
+const { readProps } = require('./shared');
 
 handle('props:read', (p) => readProps(p));
 

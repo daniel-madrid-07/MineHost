@@ -70,7 +70,7 @@
         <div class="vhead-actions">
           <button class="btn btn-quiet" id="btnOpenFolder"><svg class="ic"><use href="#i-folder"/></svg><span data-i18n="panel.folder">Folder</span></button>
           <button class="btn btn-primary" id="btnPower" data-tour="power">
-            <svg class="ic"><use href="#i-power"/></svg><span id="btnPowerText">Encender</span>
+            <svg class="ic"><use href="#i-power"/></svg><span id="btnPowerText">Start</span>
           </button>
         </div>
       </header>
@@ -195,7 +195,7 @@
       <div class="tabpane" id="tab-datapacks">
         <div class="dropzone" id="dpDrop">
           <strong class="t-title" data-i18n="world.dropDatapacks">Drop your datapacks here</strong>
-          <span class="t-sm ink-subtle">Archivos .zip · se aplican al reiniciar</span>
+          <span class="t-sm ink-subtle" data-i18n="world.dropDatapacksHint">ZIP files, applied on restart</span>
         </div>
         <div id="dpList" class="rows"></div>
       </div>
@@ -222,7 +222,7 @@
       <div class="tabpane active" id="tab-instalados">
         <div class="dropzone" id="modDrop">
           <strong class="t-title" id="dropTitle" data-i18n="mods.drop">Drop your mods here</strong>
-          <span class="t-sm ink-subtle">Archivos .jar</span>
+          <span class="t-sm ink-subtle" data-i18n="mods.dropHint">.jar files</span>
         </div>
         <div id="modList" class="rows"></div>
       </div>
@@ -810,7 +810,7 @@
   <div class="modal modal-wizard" role="dialog" aria-modal="true" aria-labelledby="wzTitle">
     <div class="wz-progress"><i id="wzProgress"></i></div>
     <div class="modal-body">
-      <span class="t-caption ink-subtle" id="wzStep">Paso 1 de 3</span>
+      <span class="t-caption ink-subtle" id="wzStep">Step 1 of 3</span>
       <h2 class="t-h2" id="wzTitle"></h2>
       <p class="t-body ink-muted" id="wzText"></p>
       <div id="wzContent"></div>
@@ -864,7 +864,7 @@
   </svg>
   <div class="tour-pop" id="tourPop" role="dialog" aria-live="polite">
     <div class="tour-pop-head">
-      <span class="t-caption ink-subtle" id="tourStep">Paso 1 de 4</span>
+      <span class="t-caption ink-subtle" id="tourStep">Step 1 of 4</span>
       <button class="tour-skip" id="tourSkip" data-i18n="tour.skip">Skip</button>
     </div>
     <h3 class="t-title" id="tourTitle"></h3>
