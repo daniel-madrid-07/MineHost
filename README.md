@@ -112,7 +112,7 @@ Automatic, rotated, and flushed safely before copying.
 ## Installing
 
 1. Download the installer from [Releases](../../releases).
-2. Run `MineHost Setup 1.0.0.exe`.
+2. Run `MineHost Setup 1.5.2.exe`.
 3. Open it from the Start menu.
 
 Windows will warn about an unknown publisher: the executable is not signed, because a certificate costs money. Click **More info › Run anyway**.
